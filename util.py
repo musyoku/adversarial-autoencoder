@@ -44,9 +44,9 @@ def load_mnist_dataset(args, convert_to_grayscale=True):
 
 def sample_z_from_noise_prior(batchsize, z_dimension, gpu=False):
 	z = np.random.uniform(-5, 5, (batchsize, z_dimension)).astype(np.float32)
-	if gpu:
-		z = cuda.to_gpu(z)
 	z = Variable(z)
+	if gpu:
+		z.to_gpu()
 	return z
 
 def sample_z_from_10_2d_gaussian_mixture(batchsize, label_indices, n_labels, gpu=False):
@@ -67,6 +67,7 @@ def sample_z_from_10_2d_gaussian_mixture(batchsize, label_indices, n_labels, gpu
 	for batch in xrange(batchsize):
 		z[batch] = sample(np.array([x[batch], y[batch]]), label_indices[batch], n_labels)
 	
+	z = Variable(z)
 	if gpu:
-		z = cuda.to_gpu(z)
-	return Variable(z)
+		z.to_gpu()
+	return z
