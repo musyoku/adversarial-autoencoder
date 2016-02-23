@@ -11,9 +11,9 @@ from build import build
 
 # 設定変更
 config.n_z = 2
-config.n_gen_hidden_units = [600, 600, 600]
-config.n_dis_hidden_units = [600, 600, 600]
-config.n_dec_hidden_units = [600, 600, 600]
+config.n_gen_hidden_units = [1200, 1200, 1200]
+config.n_dis_hidden_units = [1200, 1200, 1200]
+config.n_dec_hidden_units = [1200, 1200, 1200]
 config.gen_encoder_type = "gaussian"
 
 gen, dis, dec = build(config)

@@ -3,18 +3,21 @@ import numpy as np
 import chainer.functions as F
 import chainer.links as L
 from chainer import cuda, optimizers, serializers, Variable
-import os, sys, time
+import os, sys, time, pylab
+import matplotlib.patches as mpatches
 sys.path.append(os.path.split(os.getcwd())[0])
 from args import args
 from config import config
 from model import gen, dis, dec
 from util import *
 
-def sample_x_from_data_distribution(batchsize):
+def sample_x_from_data_distribution(batchsize, sequential=False):
 	shape = config.img_channel * config.img_width * config.img_width
 	x_batch = np.zeros((batchsize, shape), dtype=np.float32)
 	for j in range(batchsize):
 		data_index = np.random.randint(len(dataset))
+		if sequential:
+			data_index = j
 		img = dataset[data_index]
 		x_batch[j] = img.reshape((shape,))
 	x_batch = Variable(x_batch)
@@ -22,20 +25,20 @@ def sample_x_from_data_distribution(batchsize):
 		x_batch.to_gpu()
 	return x_batch
 
-def sample_x_and_label_from_data_distribution(batchsize):
+def sample_x_and_label_from_data_distribution(batchsize, sequential=False):
 	shape = config.img_channel * config.img_width * config.img_width
 	x_batch = np.zeros((batchsize, shape), dtype=np.float32)
 	label_batch = np.zeros((batchsize, 1), dtype=np.int32)
 	for j in range(batchsize):
 		data_index = np.random.randint(len(dataset))
+		if sequential:
+			data_index = j
 		img = dataset[data_index]
 		x_batch[j] = img.reshape((shape,))
 		label_batch[j] = labels[data_index]
 	x_batch = Variable(x_batch)
-	label_batch = Variable(label_batch)
-	if config.use_gpu:
+	if use_gpu:
 		x_batch.to_gpu()
-		label_batch.to_gpu()
 	return x_batch, label_batch
 
 def visualize_reconstruction():
@@ -91,17 +94,23 @@ def visualize_walkthrough():
 	pylab.savefig("%s/walk_through.png" % args.visualization_dir)
 
 def visualize_labeled_z():
-	x_batch, label_batch = sample_x_and_label_from_data_distribution(1000)
+	x_batch, label_batch = sample_x_and_label_from_data_distribution(len(dataset), sequential=True)
 	z_batch = gen(x_batch, test=True)
-	if z_batch.data[0].shape[0] != 2:
-		raise Exception("隠れ変数ベクトルは2次元である必要があります")
+	z_batch = z_batch.data
+	if z_batch[0].shape[0] != 2:
+		raise Exception("Latent code vector dimension must be 2.")
 		
-	pylab.rcParams["figure.figsize"] = (7.0, 7.0)
+	pylab.rcParams["figure.figsize"] = (5.0, 5.0)
 	pylab.clf()
-	colors = ["#e40402","#05aaa8","#ac02ab","#aba808","#151515","#94a169", "#bec9cd", "#0e960e", "#6a6551","#2103c8"]
+	colors = ["#2103c8", "#0e960e", "#e40402","#05aaa8","#ac02ab","#aba808","#151515","#94a169", "#bec9cd", "#6a6551"]
 	for n in xrange(z_batch.shape[0]):
-		pylab.scatter(z_batch[n, 0], z_batch[n, 1], c=colors[label_batch[n]], s=20, marker="o", edgecolors='none')
+		result = pylab.scatter(z_batch[n, 0], z_batch[n, 1], c=colors[label_batch[n]], s=20, marker="o", edgecolors='none')
 
+	classes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+	recs = []
+	for i in range(0, len(colors)):
+	    recs.append(mpatches.Rectangle((0, 0), 1, 1, fc=colors[i]))
+	pylab.legend(recs, classes, loc=4)
 	pylab.xticks(pylab.arange(-2, 3))
 	pylab.yticks(pylab.arange(-2, 3))
 	pylab.xlabel("z1")
@@ -114,9 +123,9 @@ except:
 	pass
 
 if args.load_epoch == 0:
-	raise Exception("load_epochを指定してモデルを読み込む必要があります")
+	raise Exception("you must specify the 'load_epoch'")
 
-dataset, label = load_mnist_dataset(args)
+dataset, labels = load_mnist_dataset(args)
 use_gpu = False
 
 if use_gpu == False:
@@ -125,3 +134,4 @@ if use_gpu == False:
 
 visualize_reconstruction()
 visualize_walkthrough()
+visualize_labeled_z()
