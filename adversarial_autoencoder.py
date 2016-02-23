@@ -152,7 +152,10 @@ class Decoder(chainer.Chain):
 			u = getattr(self, "layer_%i" % i)(chain[-1])
 			if self.enable_batchnorm:
 				u = getattr(self, "batchnorm_%i" % i)(u, test=test)
-			chain.append(activate(u))
+			output = activate(u)
+			if self.enable_dropout:
+				output = F.dropout(output, train=not test)
+			chain.append(output)
 
 		# Output
 		u = getattr(self, "layer_%i" % (self.n_layers - 1))(chain[-1])

@@ -69,6 +69,6 @@ def build(config):
 	dec.output_activation_type = config.dec_output_activation_type
 	dec.enable_batchnorm = config.enable_batchnorm
 	dec.enable_batchnorm_to_output = config.dec_enable_batchnorm_to_output
-	dis.enable_dropout = config.dec_enable_dropout
+	dec.enable_dropout = config.dec_enable_dropout
 
 	return gen, dis, dec

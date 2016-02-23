@@ -15,6 +15,9 @@ config.n_gen_hidden_units = [1200, 1200, 1200]
 config.n_dis_hidden_units = [1200, 1200, 1200]
 config.n_dec_hidden_units = [1200, 1200, 1200]
 config.gen_encoder_type = "gaussian"
+config.gen_enable_dropout = False
+config.dis_enable_dropout = False
+config.dec_enable_dropout = False
 
 gen, dis, dec = build(config)
 

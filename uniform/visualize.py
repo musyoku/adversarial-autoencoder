@@ -104,15 +104,15 @@ def visualize_labeled_z():
 	pylab.clf()
 	colors = ["#2103c8", "#0e960e", "#e40402","#05aaa8","#ac02ab","#aba808","#151515","#94a169", "#bec9cd", "#6a6551"]
 	for n in xrange(z_batch.shape[0]):
-		result = pylab.scatter(z_batch[n, 0], z_batch[n, 1], c=colors[label_batch[n]], s=20, marker="o", edgecolors='none')
+		result = pylab.scatter(z_batch[n, 0], z_batch[n, 1], c=colors[label_batch[n]], s=40, marker="o", edgecolors='none')
 
 	classes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 	recs = []
 	for i in range(0, len(colors)):
 	    recs.append(mpatches.Rectangle((0, 0), 1, 1, fc=colors[i]))
-	pylab.legend(recs, classes, loc=4)
-	pylab.xticks(pylab.arange(-2, 3))
-	pylab.yticks(pylab.arange(-2, 3))
+	pylab.legend(recs, classes, loc="lower right")
+	# pylab.xticks(pylab.arange(-2, 3))
+	# pylab.yticks(pylab.arange(-2, 3))
 	pylab.xlabel("z1")
 	pylab.ylabel("z2")
 	pylab.savefig("%s/labeled_z.png" % args.visualization_dir)

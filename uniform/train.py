@@ -46,7 +46,9 @@ def train(dataset, labels):
 	optimizer_dec.setup(dec)
 	optimizer_dis.setup(dis)
 
-	for epoch in xrange(args.load_epoch, n_epoch):
+	start_epoch = 1 if args.load_epoch == 0 else args.load_epoch + 1
+
+	for epoch in xrange(start_epoch, n_epoch):
 		# Adversarial Networksの誤差
 		sum_loss_regularization = 0
 		# 復号誤差
