@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-import os
-import re
+import os, re, math, pylab
 from math import *
-import pylab
 import numpy as np
 from StringIO import StringIO
 from PIL import Image
@@ -66,6 +64,24 @@ def sample_z_from_10_2d_gaussian_mixture(batchsize, label_indices, n_labels, gpu
 	z = np.zeros((batchsize, 2), dtype=np.float32)
 	for batch in xrange(batchsize):
 		z[batch] = sample(np.array([x[batch], y[batch]]), label_indices[batch], n_labels)
+	
+	z = Variable(z)
+	if gpu:
+		z.to_gpu()
+	return z
+
+def sample_z_from_swiss_roll_distribution(batchsize, label_indices, n_labels, gpu=False):
+	def sample(label, n_labels):
+		uni = np.random.uniform(0.0, 1.0) / float(n_labels) + float(label) / float(n_labels)
+		r = math.sqrt(uni) * 3.0
+		rad = np.pi * 4.0 * math.sqrt(uni)
+		x = r * cos(rad)
+		y = r * sin(rad)
+		return np.array([x, y]).reshape((2,))
+
+	z = np.zeros((batchsize, 2), dtype=np.float32)
+	for batch in xrange(batchsize):
+		z[batch] = sample(label_indices[batch], n_labels)
 	
 	z = Variable(z)
 	if gpu:

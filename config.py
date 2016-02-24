@@ -56,6 +56,7 @@ config.n_gen_hidden_units = [600, 600]
 config.gen_encoder_type = "deterministic"
 
 ## 活性化関数
+## See activations.py
 config.gen_activation_type = "elu"
 
 ## 出力層の活性化関数
@@ -78,6 +79,7 @@ config.gen_enable_dropout = True
 config.n_dis_hidden_units = [600, 600]
 
 ## 隠れ層の活性化関数
+## See activations.py
 config.dis_activation_type = "elu"
 
 ## ソフトマックス層への入力の活性化関数
@@ -99,6 +101,7 @@ config.dis_enable_dropout = True
 config.n_dec_hidden_units = [600, 600]
 
 ## 隠れ層の活性化関数
+## See activations.py
 config.dec_activation_type = "elu"
 
 ## 出力層（画素値を表す）の活性化関数

@@ -90,7 +90,7 @@ def train(dataset, labels):
 				if k > 0:
 					x_batch, label_index_batch, label_1ofK_batch_extended = sample_x_and_label_from_data_distribution(batchsize)
 
-				z_real_batch = sample_z_from_10_2d_gaussian_mixture(batchsize, label_index_batch, 10, config.use_gpu)
+				z_real_batch = sample_z_from_swiss_roll_distribution(batchsize, label_index_batch, 10, config.use_gpu)
 				z_real_batch_labeled = xp.zeros((batchsize, 12), dtype=xp.float32)
 				z_real_batch_labeled[:,:2] = z_real_batch.data[:,:]
 				z_real_batch_labeled = z_real_batch_labeled + label_1ofK_batch_extended.data
