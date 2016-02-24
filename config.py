@@ -41,6 +41,9 @@ config.n_x = config.img_width ** 2
 ## 隠れ変数ベクトルの次元
 config.n_z = 100
 
+## Dimension of the input of discriminator
+config.n_dis_x = config.n_z
+
 ## 重みの初期化
 config.wscale_base = 0.0001
 

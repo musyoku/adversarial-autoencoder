@@ -25,7 +25,7 @@ def sample_x_from_data_distribution(batchsize):
 def train(dataset, labels):
 	batchsize = 100
 	n_epoch = 10000
-	n_train_each_epoch = 500
+	n_train_each_epoch = 2000
 	total_time = 0
 
 	xp = cuda.cupy if config.use_gpu else np
@@ -73,7 +73,7 @@ def train(dataset, labels):
 
 			# Adversarial phase
 			for k in xrange(n_steps_to_optimize_dis):
-				if k > 1:
+				if k > 0:
 					x_batch = sample_x_from_data_distribution(batchsize)
 
 				z_real_batch = sample_z_from_noise_prior(batchsize, config.n_z, config.use_gpu)
@@ -85,7 +85,7 @@ def train(dataset, labels):
 				loss_dis_real = F.softmax_cross_entropy(p_real_batch, Variable(xp.zeros(batchsize, dtype=np.int32)))
 
 				## 上で一度z_fake_batchは計算しているため省く
-				if k > 1:
+				if k > 0:
 					z_fake_batch = gen(x_batch)
 
 				p_fake_batch = dis(z_fake_batch)

@@ -167,7 +167,6 @@ if use_gpu == False:
 	gen.to_cpu()
 	dec.to_cpu()
 
-visualize_10_2d_gaussian_prior()
 visualize_reconstruction()
 visualize_walkthrough()
 visualize_labeled_z()
