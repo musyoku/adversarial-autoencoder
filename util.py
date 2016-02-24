@@ -43,7 +43,7 @@ def load_mnist_dataset(args, convert_to_grayscale=True):
 	return dataset, labels
 
 def sample_z_from_noise_prior(batchsize, z_dimension, gpu=False):
-	z = np.random.uniform(-5, 5, (batchsize, z_dimension)).astype(np.float32)
+	z = np.random.uniform(-2, 2, (batchsize, z_dimension)).astype(np.float32)
 	z = Variable(z)
 	if gpu:
 		z.to_gpu()

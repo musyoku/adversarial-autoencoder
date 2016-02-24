@@ -41,6 +41,9 @@ config.n_x = config.img_width ** 2
 ## 隠れ変数ベクトルの次元
 config.n_z = 100
 
+## 重みの初期化
+config.wscale_base = 0.0001
+
 # Encoder(Generator)の設定
 ## xをzに符号化するEncoderとxからzを生成するGeneratorは同一のニューラルネット
 ## 隠れ層のユニット数

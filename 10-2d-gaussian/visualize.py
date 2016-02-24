@@ -124,6 +124,34 @@ def visualize_labeled_z():
 	pylab.ylabel("z2")
 	pylab.savefig("%s/labeled_z.png" % args.visualization_dir)
 
+def visualize_10_2d_gaussian_prior():
+	x_batch, label_batch = sample_x_and_label_from_data_distribution(len(dataset), sequential=True)
+	z_batch = sample_z_from_10_2d_gaussian_mixture(len(dataset), label_batch, 10, use_gpu)
+	z_batch = z_batch.data
+
+	fig = pylab.gcf()
+	fig.set_size_inches(20.0, 16.0)
+	pylab.clf()
+	colors = ["#2103c8", "#0e960e", "#e40402","#05aaa8","#ac02ab","#aba808","#151515","#94a169", "#bec9cd", "#6a6551"]
+	for n in xrange(z_batch.shape[0]):
+		result = pylab.scatter(z_batch[n, 0], z_batch[n, 1], c=colors[label_batch[n]], s=40, marker="o", edgecolors='none')
+
+	classes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+	recs = []
+	for i in range(0, len(colors)):
+	    recs.append(mpatches.Rectangle((0, 0), 1, 1, fc=colors[i]))
+
+	ax = pylab.subplot(111)
+	box = ax.get_position()
+	ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+	ax.legend(recs, classes, loc="center left", bbox_to_anchor=(1.1, 0.5))
+	pylab.xticks(pylab.arange(-4, 5))
+	pylab.yticks(pylab.arange(-4, 5))
+	pylab.xlabel("z1")
+	pylab.ylabel("z2")
+	pylab.savefig("%s/10_2d-gaussian.png" % args.visualization_dir)
+
+
 try:
 	os.mkdir(args.visualization_dir)
 except:
@@ -139,6 +167,7 @@ if use_gpu == False:
 	gen.to_cpu()
 	dec.to_cpu()
 
+visualize_10_2d_gaussian_prior()
 visualize_reconstruction()
 visualize_walkthrough()
 visualize_labeled_z()

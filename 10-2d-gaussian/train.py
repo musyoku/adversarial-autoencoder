@@ -10,19 +10,23 @@ from config import config
 from model import gen, dis, dec
 from util import *
 
-def sample_x_from_data_distribution(batchsize):
+def sample_x_and_label_from_data_distribution(batchsize):
 	shape = config.img_channel * config.img_width * config.img_width
 	x_batch = np.zeros((batchsize, shape), dtype=np.float32)
+	label_batch = np.zeros((batchsize, 1), dtype=np.int32)
 	for j in range(batchsize):
 		data_index = np.random.randint(len(dataset))
 		img = dataset[data_index]
 		x_batch[j] = img.reshape((shape,))
+		label_batch[j] = labels[data_index]
 	x_batch = Variable(x_batch)
 	if config.use_gpu:
 		x_batch.to_gpu()
-	return x_batch
+	return x_batch, label_batch
 
 def train(dataset, labels):
+	if config.n_z != 2:
+		raise Exception("Latent code dimension must be 2")
 	batchsize = 100
 	n_epoch = 10000
 	n_train_each_epoch = 500
@@ -55,7 +59,7 @@ def train(dataset, labels):
 		for i in xrange(0, n_train_each_epoch):
 
 			# Sample minibatch of examples
-			x_batch = sample_x_from_data_distribution(batchsize)
+			x_batch, label_batch = sample_x_and_label_from_data_distribution(batchsize)
 
 			# Reconstruction phase
 			z_fake_batch = gen(x_batch)
@@ -74,9 +78,9 @@ def train(dataset, labels):
 			# Adversarial phase
 			for k in xrange(n_steps_to_optimize_dis):
 				if k > 1:
-					x_batch = sample_x_from_data_distribution(batchsize)
+					x_batch, label_batch = sample_x_and_label_from_data_distribution(batchsize)
 
-				z_real_batch = sample_z_from_noise_prior(batchsize, config.n_z, config.use_gpu)
+				z_real_batch = sample_z_from_10_2d_gaussian_mixture(batchsize, label_batch, 10, config.use_gpu)
 
 				## Discriminator loss
 				p_real_batch = dis(z_real_batch)

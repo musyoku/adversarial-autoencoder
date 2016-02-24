@@ -5,7 +5,6 @@ from adversarial_autoencoder import Generator, Discriminator, Decoder
 
 def build(config):
 	config.check()
-	initial_weight_variance = 0.01
 
 	# Generator
 	gen_attributes = {}
@@ -15,14 +14,14 @@ def build(config):
 
 	if config.gen_encoder_type == "deterministic":
 		for i, (n_in, n_out) in enumerate(gen_layer_units):
-			gen_attributes["layer_%i" % i] = L.Linear(n_in, n_out, wscale=initial_weight_variance * math.sqrt(n_in * n_out))
+			gen_attributes["layer_%i" % i] = L.Linear(n_in, n_out, wscale=config.wscale_base * math.sqrt(n_in * n_out))
 			gen_attributes["batchnorm_%i" % i] = L.BatchNormalization(n_out)
 
 	elif config.gen_encoder_type == "gaussian":
 		for i, (n_in, n_out) in enumerate(gen_layer_units):
-			gen_attributes["layer_mean_%i" % i] = L.Linear(n_in, n_out, wscale=initial_weight_variance * math.sqrt(n_in * n_out))
+			gen_attributes["layer_mean_%i" % i] = L.Linear(n_in, n_out, wscale=config.wscale_base * math.sqrt(n_in * n_out))
 			gen_attributes["batchnorm_mean_%i" % i] = L.BatchNormalization(n_out)
-			gen_attributes["layer_variance_%i" % i] = L.Linear(n_in, n_out, wscale=initial_weight_variance * math.sqrt(n_in * n_out))
+			gen_attributes["layer_variance_%i" % i] = L.Linear(n_in, n_out, wscale=config.wscale_base * math.sqrt(n_in * n_out))
 			gen_attributes["batchnorm_variance_%i" % i] = L.BatchNormalization(n_out)
 
 	gen = Generator(**gen_attributes)
@@ -42,7 +41,7 @@ def build(config):
 	dis_layer_units += [(config.n_dis_hidden_units[-1], 2)]
 
 	for i, (n_in, n_out) in enumerate(dis_layer_units):
-		dis_attributes["layer_%i" % i] = L.Linear(n_in, n_out, wscale=initial_weight_variance * math.sqrt(n_in * n_out))
+		dis_attributes["layer_%i" % i] = L.Linear(n_in, n_out, wscale=config.wscale_base * math.sqrt(n_in * n_out))
 		dis_attributes["batchnorm_%i" % i] = L.BatchNormalization(n_out)
 
 	dis = Discriminator(**dis_attributes)
@@ -60,7 +59,7 @@ def build(config):
 	dec_layer_units += [(config.n_dec_hidden_units[-1], config.n_x)]
 
 	for i, (n_in, n_out) in enumerate(dec_layer_units):
-		dec_attributes["layer_%i" % i] = L.Linear(n_in, n_out, wscale=initial_weight_variance * math.sqrt(n_in * n_out))
+		dec_attributes["layer_%i" % i] = L.Linear(n_in, n_out, wscale=config.wscale_base * math.sqrt(n_in * n_out))
 		dec_attributes["batchnorm_%i" % i] = L.BatchNormalization(n_out)
 
 	dec = Decoder(**dec_attributes)
