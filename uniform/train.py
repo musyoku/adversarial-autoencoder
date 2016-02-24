@@ -113,8 +113,20 @@ def train(dataset, labels):
 
 		# Saving the models
 		print "epoch", epoch
-		print "	reconstruction loss", (sum_loss_reconstruction / n_train_each_epoch)
-		print "	regularization loss", (sum_loss_regularization / n_train_each_epoch)
+		print "	reconstruction_loss", (sum_loss_reconstruction / n_train_each_epoch)
+		print "	regularization_loss", (sum_loss_regularization / n_train_each_epoch)
+		p_real_batch.to_cpu()
+		p_real_batch = p_real_batch.data.transpose(1, 0)
+		p_real_batch = np.exp(p_real_batch)
+		sum_p_real_batch = p_real_batch[0] + p_real_batch[1]
+		win_real = p_real_batch[0] / sum_p_real_batch
+		print "	D(real_z)", win_real.mean()
+		p_fake_batch.to_cpu()
+		p_fake_batch = p_fake_batch.data.transpose(1, 0)
+		p_fake_batch = np.exp(p_fake_batch)
+		sum_p_fake_batch = p_fake_batch[0] + p_fake_batch[1]
+		win_fake = p_fake_batch[0] / sum_p_fake_batch
+		print "	D(gen_z) ", win_fake.mean()
 		serializers.save_hdf5("%s/gen_epoch_%d.model" % (args.model_dir, epoch), gen)
 		serializers.save_hdf5("%s/dis_epoch_%d.model" % (args.model_dir, epoch), dis)
 		serializers.save_hdf5("%s/dec_epoch_%d.model" % (args.model_dir, epoch), dec)

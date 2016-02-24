@@ -145,7 +145,7 @@ def train(dataset, labels):
 		p_fake_batch = np.exp(p_fake_batch)
 		sum_p_fake_batch = p_fake_batch[0] + p_fake_batch[1]
 		win_fake = p_fake_batch[0] / sum_p_fake_batch
-		print "	D(generated_z)", win_fake.mean()
+		print "	D(gen_z) ", win_fake.mean()
 		serializers.save_hdf5("%s/gen_epoch_%d.model" % (args.model_dir, epoch), gen)
 		serializers.save_hdf5("%s/dis_epoch_%d.model" % (args.model_dir, epoch), dis)
 		serializers.save_hdf5("%s/dec_epoch_%d.model" % (args.model_dir, epoch), dec)
