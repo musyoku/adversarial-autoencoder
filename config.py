@@ -41,9 +41,6 @@ config.n_x = config.img_width ** 2
 ## 隠れ変数ベクトルの次元
 config.n_z = 100
 
-## Dimension of the input of discriminator
-config.n_dis_x = config.n_z
-
 ## 重みの初期化
 config.wscale_base = 0.0001
 
@@ -90,7 +87,7 @@ config.dis_softmax_activation_type = "elu"
 ## 入力層でBatch Normalizationを使うかどうか
 ## 詳細は[Deep Convolutional Generative Adversarial Networks](http://arxiv.org/pdf/1511.06434v2.pdf)
 ## ... This was avoided by not applying batchnorm to ... the discriminator input layer.
-## 使うとどうなるかは要検証
+## ラベル情報をone-hotなベクトルで与えている場合はおかしなことになるのでFalseにしておくほうが良いと思われる
 config.dis_enable_batchnorm_to_input = False
 
 ## ドロップアウト

@@ -36,7 +36,7 @@ def build(config):
 
 	# Discriminator
 	dis_attributes = {}
-	dis_layer_units = [(config.n_dis_x, config.n_dis_hidden_units[0])]
+	dis_layer_units = [(config.n_z, config.n_dis_hidden_units[0])]
 	dis_layer_units += zip(config.n_dis_hidden_units[:-1], config.n_dis_hidden_units[1:])
 	dis_layer_units += [(config.n_dis_hidden_units[-1], 2)]
 

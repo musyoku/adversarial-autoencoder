@@ -14,22 +14,23 @@ def sample_x_and_label_from_data_distribution(batchsize):
 	shape = config.img_channel * config.img_width * config.img_width
 	x_batch = np.zeros((batchsize, shape), dtype=np.float32)
 	label_index_batch = np.zeros((batchsize, 1), dtype=np.int32)
-	label_1ofK_batch = np.zeros((batchsize, 10), dtype=np.float32)
+	label_1ofK_batch_extended = np.zeros((batchsize, 12), dtype=np.float32)
 	for j in range(batchsize):
 		data_index = np.random.randint(len(dataset))
 		img = dataset[data_index]
 		x_batch[j] = img.reshape((shape,))
 		label_index_batch[j] = labels[data_index]
-		label_1ofK_batch[j, labels[data_index]] = 1.0
+		label_1ofK_batch_extended[j, labels[data_index] + 2] = 1.0
 	x_batch = Variable(x_batch)
+	label_1ofK_batch_extended = Variable(label_1ofK_batch_extended)
 	if config.use_gpu:
 		x_batch.to_gpu()
-		label_1ofK_batch = cuda.to_gpu(label_1ofK_batch)
-	return x_batch, label_index_batch, label_1ofK_batch
+		label_1ofK_batch_extended.to_gpu()
+	return x_batch, label_index_batch, label_1ofK_batch_extended
 
 def train(dataset, labels):
-	if config.n_z != 2:
-		raise Exception("Latent code dimension must be 2")
+	if config.n_z != 12:
+		raise Exception("The dimension of the latent code z must be 12 (2d for z, 10d for number label).")
 	batchsize = 100
 	n_epoch = 10000
 	n_train_each_epoch = 2000
@@ -39,7 +40,7 @@ def train(dataset, labels):
 
 	# Discriminatorの学習回数
 	## 詳細は[Generative Adversarial Networks](http://arxiv.org/abs/1406.2661)
-	n_steps_to_optimize_dis = 2
+	n_steps_to_optimize_dis = 1
 
 	# Use Adam
 	optimizer_dec = optimizers.Adam(alpha=0.0002, beta1=0.5)
@@ -62,7 +63,7 @@ def train(dataset, labels):
 		for i in xrange(0, n_train_each_epoch):
 
 			# Sample minibatch of examples
-			x_batch, label_index_batch, label_1ofK_batch = sample_x_and_label_from_data_distribution(batchsize)
+			x_batch, label_index_batch, label_1ofK_batch_extended = sample_x_and_label_from_data_distribution(batchsize)
 
 			# Reconstruction phase
 			z_fake_batch = gen(x_batch)
@@ -81,17 +82,16 @@ def train(dataset, labels):
 			# Adversarial phase
 			for k in xrange(n_steps_to_optimize_dis):
 				if k > 0:
-					x_batch, label_index_batch, label_1ofK_batch = sample_x_and_label_from_data_distribution(batchsize)
+					x_batch, label_index_batch, label_1ofK_batch_extended = sample_x_and_label_from_data_distribution(batchsize)
 
 				z_real_batch = sample_z_from_10_2d_gaussian_mixture(batchsize, label_index_batch, 10, config.use_gpu)
-				z_real_batch = z_real_batch.data
-				z_real_batch_extended = xp.zeros((batchsize, config.n_dis_x), dtype=xp.float32)
-				z_real_batch_extended[:,:-10] = z_real_batch[:,:]
-				z_real_batch_extended[:,-10:] = label_1ofK_batch[:,:]
-				z_real_batch_extended = Variable(z_real_batch_extended)
+				z_real_batch_labeled = xp.zeros((batchsize, 12), dtype=xp.float32)
+				z_real_batch_labeled[:,:2] = z_real_batch.data[:,:]
+				z_real_batch_labeled = z_real_batch_labeled + label_1ofK_batch_extended.data
+				z_real_batch_labeled = Variable(z_real_batch_labeled)
 
 				## Discriminator loss
-				p_real_batch = dis(z_real_batch_extended)
+				p_real_batch = dis(z_real_batch_labeled)
 				## p_real_batch[0] -> 本物である度合い
 				## p_real_batch[1] -> 偽物である度合い
 				loss_dis_real = F.softmax_cross_entropy(p_real_batch, Variable(xp.zeros(batchsize, dtype=np.int32)))
@@ -99,13 +99,12 @@ def train(dataset, labels):
 				## 上で一度z_fake_batchは計算しているため省く
 				if k > 0:
 					z_fake_batch = gen(x_batch)
-				z_fake_batch = z_fake_batch.data
-				z_fake_batch_extended = xp.zeros((batchsize, config.n_dis_x), dtype=xp.float32)
-				z_fake_batch_extended[:,:-10] = z_fake_batch[:,:]
-				z_fake_batch_extended[:,-10:] = label_1ofK_batch[:,:]
-				z_fake_batch_extended = Variable(z_fake_batch_extended)
+				z_mask_batch = xp.zeros((batchsize, 12), dtype=xp.float32)
+				z_mask_batch[:,:2] = xp.ones((batchsize, 2), dtype=xp.float32)
+				z_mask_batch = Variable(z_mask_batch)
+				z_fake_batch_labeled = z_fake_batch * z_mask_batch + label_1ofK_batch_extended
 
-				p_fake_batch = dis(z_fake_batch_extended)
+				p_fake_batch = dis(z_fake_batch_labeled)
 				## p_fake_batch[0] -> 本物である度合い
 				## p_fake_batch[1] -> 偽物である度合い
 				loss_dis_fake = F.softmax_cross_entropy(p_fake_batch, Variable(xp.ones(batchsize, dtype=np.int32)))
@@ -137,19 +136,13 @@ def train(dataset, labels):
 		p_real_batch = np.exp(p_real_batch)
 		sum_p_real_batch = p_real_batch[0] + p_real_batch[1]
 		win_real = p_real_batch[0] / sum_p_real_batch
-		loose_real = p_real_batch[1] / sum_p_real_batch
-		print "	p_real_batch"
-		print "		win  : ave", win_real.mean()
-		print "		loose: ave", loose_real.mean()
+		print "D(real_z)", win_real.mean()
 		p_fake_batch.to_cpu()
 		p_fake_batch = p_fake_batch.data.transpose(1, 0)
 		p_fake_batch = np.exp(p_fake_batch)
 		sum_p_fake_batch = p_fake_batch[0] + p_fake_batch[1]
 		win_fake = p_fake_batch[0] / sum_p_fake_batch
-		loose_fake = p_fake_batch[1] / sum_p_fake_batch
-		print "	p_fake_batch"
-		print "		win  : ave", win_fake.mean()
-		print "		loose: ave", loose_fake.mean()
+		print "D(generated_z)", win_fake.mean()
 		serializers.save_hdf5("%s/gen_epoch_%d.model" % (args.model_dir, epoch), gen)
 		serializers.save_hdf5("%s/dis_epoch_%d.model" % (args.model_dir, epoch), dis)
 		serializers.save_hdf5("%s/dec_epoch_%d.model" % (args.model_dir, epoch), dec)
