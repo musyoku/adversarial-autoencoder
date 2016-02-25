@@ -2,14 +2,18 @@
 
 This is the [Chainer](http://chainer.org/) implementation of [Adversarial Autoencoder [arXiv:1511.05644]](http://arxiv.org/pdf/1511.05644v1.pdf)
 
-## Unsupervised
+解説とか
+
+http://musyoku.github.io/2016/02/22/adversarial-autoencoder/
+
+## MNIST Unsupervised Learning
 
 ### Uniform
 
 #### 1,000 train data
 #### 9,000 test data
 
-## Supervised
+## MNIST Supervised Learning
 
 ### 10 2D-Gaussian Distribution
 
@@ -30,7 +34,3 @@ This is the [Chainer](http://chainer.org/) implementation of [Adversarial Autoen
 #### 9,000 test data
 
 ![Swiss Roll](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/swiss_roll_test_labeled_z.png?raw=true)
-
-詳細はこちらの記事で
-
-http://musyoku.github.io/2016/02/22/adversarial-autoencoder/
