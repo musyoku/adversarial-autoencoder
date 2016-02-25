@@ -10,7 +10,9 @@ Create "images" directory in the root.
 
 Options:
 - --image_dir
-- --load_epoch
+-- Specify the directory that contains the training images.
+- --load_epoch 
+-- Specify the model you want to load.
 
 ## MNIST Unsupervised Learning
 
