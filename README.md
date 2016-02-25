@@ -6,7 +6,7 @@ This is the [Chainer](http://chainer.org/) implementation of [Adversarial Autoen
 
 ## Usage
 
-Create "images" directory in the root or use "image_dir" option to specify the directory.
+Create "images" directory in the root or use "image_dir" option to specify the directory that contains training images.
 
 Options:
 - --image_dir
