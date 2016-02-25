@@ -6,13 +6,22 @@ This is the [Chainer](http://chainer.org/) implementation of [Adversarial Autoen
 
 ## Usage
 
-Create "images" directory in the root.
+Create "images" directory in the root or use "image_dir" option to specify the directory.
 
 Options:
 - --image_dir
 	- Specify the directory that contains the training images.
 - --load_epoch 
 	- Specify the model you want to load.
+
+Training:
+`cd swiss_roll`
+`python train.py`
+
+Visualizing:
+`cd swiss_roll`
+`python visualize.py --load_epoch 10`
+
 
 ## MNIST Unsupervised Learning
 
