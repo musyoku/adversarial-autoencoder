@@ -9,7 +9,7 @@ This is the [Chainer](http://chainer.org/) implementation of [Adversarial Autoen
 #### 1,000 train data
 #### 9,000 test data
 
-## Semi-supervised
+## Supervised
 
 ### 10 2D-Gaussian Distribution
 
