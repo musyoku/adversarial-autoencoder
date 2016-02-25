@@ -12,7 +12,12 @@
 ### 10 2D-Gaussian Distribution
 
 #### 1,000 train data
+
+![10 2D-Gaussian](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/10_2d-gaussian_train_labeled_z.png?raw=true)
+
 #### 9,000 test data
+
+![10 2D-Gaussian](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/10_2d-gaussian_test_labeled_z.png?raw=true)
 
 ### Swiss Roll Distribution
 
