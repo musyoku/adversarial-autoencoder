@@ -45,6 +45,7 @@ def visualize_reconstruction():
 	x_batch = sample_x_from_data_distribution(100)
 	
 	z_batch = gen(x_batch, test=True)
+	z_batch.data[:,2:] = 0.0
 	_x_batch = dec(z_batch, test=True)
 	if use_gpu:
 		_x_batch.to_cpu()
@@ -66,6 +67,7 @@ def visualize_reconstruction():
 def visualize_walkthrough():
 	x_batch = sample_x_from_data_distribution(20)
 	z_batch = gen(x_batch, test=True)
+	z_batch.data[:,2:] = 0.0
 	if use_gpu:
 		z_batch.to_cpu()
 

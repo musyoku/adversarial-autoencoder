@@ -2,9 +2,7 @@
 
 This is the [Chainer](http://chainer.org/) implementation of [Adversarial Autoencoder [arXiv:1511.05644]](http://arxiv.org/pdf/1511.05644v1.pdf)
 
-解説とか
-
-http://musyoku.github.io/2016/02/22/adversarial-autoencoder/
+[この記事](http://musyoku.github.io/2016/02/22/adversarial-autoencoder/)で実装したコードです。
 
 ## MNIST Unsupervised Learning
 
