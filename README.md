@@ -4,6 +4,14 @@ This is the [Chainer](http://chainer.org/) implementation of [Adversarial Autoen
 
 [この記事](http://musyoku.github.io/2016/02/22/adversarial-autoencoder/)で実装したコードです。
 
+## Usage
+
+Create "images" directory in the root.
+
+Options:
+- --image_dir
+- --load_epoch
+
 ## MNIST Unsupervised Learning
 
 ### Uniform (-2.0 ~ 2.0)
