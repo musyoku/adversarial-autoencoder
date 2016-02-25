@@ -4,6 +4,10 @@ This is the [Chainer](http://chainer.org/) implementation of [Adversarial Autoen
 
 [この記事](http://musyoku.github.io/2016/02/22/adversarial-autoencoder/)で実装したコードです。
 
+## Requirements
+
+- Chainer 1.6+
+
 ## Usage
 
 Create "images" directory in the root or use "image_dir" option to specify the directory that contains training images.
