@@ -15,11 +15,15 @@ Options:
 	- Specify the model you want to load.
 
 Training:
+
 `cd swiss_roll`
+
 `python train.py`
 
 Visualizing:
+
 `cd swiss_roll`
+
 `python visualize.py --load_epoch 10`
 
 
