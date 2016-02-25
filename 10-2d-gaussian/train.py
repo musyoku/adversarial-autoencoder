@@ -30,7 +30,7 @@ def sample_x_and_label_from_data_distribution(batchsize):
 
 def train(dataset, labels):
 	if config.n_z != 12:
-		raise Exception("The dimension of the latent code z must be 12 (2d for z, 10d for number label).")
+		raise Exception("The dimension of the latent code z must be 12 (2d for z, 10d for 1-of-K MNIST label).")
 	batchsize = 100
 	n_epoch = 10000
 	n_train_each_epoch = 2000

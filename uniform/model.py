@@ -11,10 +11,10 @@ from build import build
 
 # 設定変更
 config.n_z = 2
-config.n_gen_hidden_units = [1200, 600, 300]
-config.n_dis_hidden_units = [600, 300, 150]
-config.n_dec_hidden_units = [300, 600, 1200]
-config.gen_encoder_type = "gaussian"
+config.n_gen_hidden_units = [2000, 1000, 500, 250]
+config.n_dis_hidden_units = [600, 600, 600]
+config.n_dec_hidden_units = [250, 500, 1000, 2000]
+config.gen_encoder_type = "deterministic"
 config.gen_enable_dropout = False
 config.dis_enable_dropout = False
 config.dec_enable_dropout = False

@@ -10,7 +10,9 @@ from config import config
 from build import build
 
 # 設定変更
-config.n_z = 12
+## 12次元のベクトルのうち、最初の2次元を隠れ変数として使い、残りの10次元はMNISTのone-hotなラベルとして使う
+## The first 2d are used for latent code z and the rest are used for 1-of-K MNIST label
+config.n_z = 2 + 10
 config.n_gen_hidden_units = [2000, 1000, 500, 250]
 config.n_dis_hidden_units = [600, 600, 600]
 config.n_dec_hidden_units = [250, 500, 1000, 2000]
