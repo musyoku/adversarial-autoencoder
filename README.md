@@ -17,8 +17,12 @@
 ### Swiss Roll Distribution
 
 #### 1,000 train data
+
+[Swiss Roll](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/swiss_roll_train_labeled_z.png?raw=true)
+
 #### 9,000 test data
 
+[Swiss Roll](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/swiss_roll_test_labeled_z.png?raw=true)
 
 詳細はこちらの記事で
 
