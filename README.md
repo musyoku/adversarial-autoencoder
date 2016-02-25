@@ -6,7 +6,7 @@ This is the [Chainer](http://chainer.org/) implementation of [Adversarial Autoen
 
 ## MNIST Unsupervised Learning
 
-### Uniform
+### Uniform (-2.0 ~ 2.0)
 
 #### 1,000 train data
 
