@@ -33,11 +33,11 @@ Visualizing:
 
 #### 1,000 train data
 
-![Uniform](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/uniform_train_labeled_z.png?raw=true)
+![Uniform](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/uniform_train_z.png?raw=true)
 
 #### 9,000 test data
 
-![Uniform](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/uniform_test_labeled_z.png?raw=true)
+![Uniform](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/uniform_test_z.png?raw=true)
 
 ## MNIST Supervised Learning
 
