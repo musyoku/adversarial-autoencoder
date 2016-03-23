@@ -20,7 +20,7 @@ Options:
 
 ### Class label
 
-Please add the label number to the image filename.
+Please add the label index (must start 0) to the image filename.
 
 format:	`[0-9]+_.+\.(bmp|png|jpg)`
 
