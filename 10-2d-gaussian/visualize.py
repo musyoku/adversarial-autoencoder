@@ -128,7 +128,7 @@ def visualize_labeled_z():
 
 def visualize_10_2d_gaussian_prior():
 	x_batch, label_batch = sample_x_and_label_from_data_distribution(len(dataset), sequential=True)
-	z_batch = sample_z_from_10_2d_gaussian_mixture(len(dataset), label_batch, 10, use_gpu)
+	z_batch = sample_z_from_n_2d_gaussian_mixture(len(dataset), label_batch, 10, use_gpu)
 	z_batch = z_batch.data
 
 	fig = pylab.gcf()
@@ -162,7 +162,7 @@ except:
 if args.load_epoch == 0:
 	raise Exception("you must specify the 'load_epoch'")
 
-dataset, labels = load_mnist_dataset(args)
+dataset, labels = load_labeled_dataset(args)
 use_gpu = False
 
 if use_gpu == False:

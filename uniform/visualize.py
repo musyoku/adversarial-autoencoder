@@ -132,7 +132,7 @@ except:
 if args.load_epoch == 0:
 	raise Exception("you must specify the 'load_epoch'")
 
-dataset, labels = load_mnist_dataset(args)
+dataset, labels = load_labeled_dataset(args)
 use_gpu = False
 
 if use_gpu == False:

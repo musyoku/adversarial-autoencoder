@@ -8,7 +8,7 @@ This is the [Chainer](http://chainer.org/) implementation of [Adversarial Autoen
 
 - Chainer 1.6+
 
-## Usage
+## Running
 
 Create "images" directory in the root or use "image_dir" option to specify the directory that contains training images.
 
@@ -18,13 +18,27 @@ Options:
 - --load_epoch 
 	- Specify the model you want to load.
 
-Training:
+### Class label
+
+Please add the label number to the image filename.
+
+format:	`[0-9]+_.+\.(bmp|png|jpg)`
+
+e.g. MNIST
+
+![example](http://musyoku.github.io/images/post/2016-02-22/class_label_example.png)
+
+### Training
+
+e.g. swiss roll distribution
 
 `cd swiss_roll`
 
 `python train.py`
 
-Visualizing:
+### Visualizing:
+
+e.g. swiss roll distribution
 
 `cd swiss_roll`
 

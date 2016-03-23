@@ -21,7 +21,7 @@ def load_images(args, convert_to_grayscale=True):
 		f.close()
 	return dataset
 
-def load_mnist_dataset(args, convert_to_grayscale=True):
+def load_labeled_dataset(args, convert_to_grayscale=True):
 	dataset = []
 	labels = []
 	fs = os.listdir(args.image_dir)
@@ -47,7 +47,7 @@ def sample_z_from_noise_prior(batchsize, z_dimension, gpu=False):
 		z.to_gpu()
 	return z
 
-def sample_z_from_10_2d_gaussian_mixture(batchsize, label_indices, n_labels, gpu=False):
+def sample_z_from_n_2d_gaussian_mixture(batchsize, label_indices, n_labels, gpu=False):
 	def sample(z, label, n_labels):
 		shift = 1.4
 		r = 2.0 * np.pi / float(n_labels) * float(label)

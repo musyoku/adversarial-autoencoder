@@ -160,5 +160,5 @@ try:
 except:
 	pass
 
-dataset, labels = load_mnist_dataset(args)
+dataset, labels = load_labeled_dataset(args)
 train(dataset, labels)
