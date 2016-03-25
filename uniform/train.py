@@ -2,13 +2,13 @@
 import numpy as np
 import chainer.functions as F
 import chainer.links as L
-from chainer import cuda, optimizers, serializers, Variable
+from chainer import cuda, optimizer, optimizers, serializers, Variable
 import os, sys, time
 sys.path.append(os.path.split(os.getcwd())[0])
+import util
 from args import args
 from config import config
 from model import gen, dis, dec
-from util import *
 
 def sample_x_from_data_distribution(batchsize):
 	shape = config.img_channel * config.img_width * config.img_width
@@ -23,6 +23,8 @@ def sample_x_from_data_distribution(batchsize):
 	return x_batch
 
 def train(dataset, labels):
+	if config.n_z % 2 != 0:
+		raise Exception("The dimension of the latent code z must be a multiple of 2.")
 	batchsize = 100
 	n_epoch = 10000
 	n_train_each_epoch = 2000
@@ -32,7 +34,7 @@ def train(dataset, labels):
 
 	# Discriminatorの学習回数
 	## 詳細は[Generative Adversarial Networks](http://arxiv.org/abs/1406.2661)
-	n_steps_to_optimize_dis = 2
+	n_steps_to_optimize_dis = 1
 
 	# Use Adam
 	optimizer_dec = optimizers.Adam(alpha=0.0002, beta1=0.5)
@@ -41,6 +43,9 @@ def train(dataset, labels):
 	optimizer_gen.setup(gen)
 	optimizer_dec.setup(dec)
 	optimizer_dis.setup(dis)
+	optimizer_dec.add_hook(optimizer.WeightDecay(0.0001))
+	optimizer_gen.add_hook(optimizer.WeightDecay(0.0001))
+	optimizer_dis.add_hook(optimizer.WeightDecay(0.0001))
 
 	start_epoch = 1 if args.load_epoch == 0 else args.load_epoch + 1
 
@@ -51,7 +56,7 @@ def train(dataset, labels):
 		sum_loss_reconstruction = 0
 
 		start_time = time.time()
-		
+
 		for i in xrange(0, n_train_each_epoch):
 
 			# Sample minibatch of examples
@@ -59,6 +64,7 @@ def train(dataset, labels):
 
 			# Reconstruction phase
 			z_fake_batch = gen(x_batch)
+			## 12d -> 2d
 			_x_batch = dec(z_fake_batch)
 
 			## 復号誤差を最小化する
@@ -76,7 +82,7 @@ def train(dataset, labels):
 				if k > 0:
 					x_batch = sample_x_from_data_distribution(batchsize)
 
-				z_real_batch = sample_z_from_noise_prior(batchsize, config.n_z, config.use_gpu)
+				z_real_batch = util.sample_z_from_noise_prior(batchsize, config.n_z, config.use_gpu)
 
 				## Discriminator loss
 				p_real_batch = dis(z_real_batch)
@@ -99,7 +105,6 @@ def train(dataset, labels):
 				optimizer_dis.zero_grads()
 				loss_dis.backward()
 				optimizer_dis.update()
-
 
 			## p_fake_batch[0] -> 本物である度合い
 			## p_fake_batch[1] -> 偽物である度合い
@@ -141,5 +146,5 @@ try:
 except:
 	pass
 
-dataset, labels = load_labeled_dataset(args)
+dataset, labels = util.load_labeled_dataset(args)
 train(dataset, labels)

@@ -4,7 +4,8 @@ from math import *
 import numpy as np
 from StringIO import StringIO
 from PIL import Image
-from chainer import cuda, Variable
+from chainer import cuda, Variable, function
+from chainer.utils import type_check
 
 def load_images(args, convert_to_grayscale=True):
 	dataset = []
@@ -40,37 +41,41 @@ def load_labeled_dataset(args, convert_to_grayscale=True):
 		f.close()
 	return dataset, labels
 
-def sample_z_from_noise_prior(batchsize, z_dimension, gpu=False):
-	z = np.random.uniform(-2, 2, (batchsize, z_dimension)).astype(np.float32)
+def sample_z_from_noise_prior(batchsize, z_dim, gpu=False):
+	z = np.random.uniform(-2, 2, (batchsize, z_dim)).astype(np.float32)
 	z = Variable(z)
 	if gpu:
 		z.to_gpu()
 	return z
 
-def sample_z_from_n_2d_gaussian_mixture(batchsize, label_indices, n_labels, gpu=False):
-	def sample(z, label, n_labels):
+def sample_z_from_n_2d_gaussian_mixture(batchsize, z_dim, label_indices, n_labels, gpu=False):
+	if z_dim % 2 != 0:
+		raise Exception("z_dim must be a multiple of 2.")
+
+	def sample(x, y, label, n_labels):
 		shift = 1.4
 		r = 2.0 * np.pi / float(n_labels) * float(label)
-		x = z[0] * cos(r) - z[1] * sin(r)
-		y = z[0] * sin(r) + z[1] * cos(r)
-		x += shift * cos(r)
-		y += shift * sin(r)
-		return np.array([x, y]).reshape((2,))
+		new_x = x * cos(r) - y * sin(r)
+		new_y = x * sin(r) + y * cos(r)
+		new_x += shift * cos(r)
+		new_y += shift * sin(r)
+		return np.array([new_x, new_y]).reshape((2,))
 
 	x_var = 0.5
 	y_var = 0.05
-	x = np.random.normal(0, x_var, (batchsize, 1))
-	y = np.random.normal(0, y_var, (batchsize, 1))
-	z = np.zeros((batchsize, 2), dtype=np.float32)
+	x = np.random.normal(0, x_var, (batchsize, z_dim / 2))
+	y = np.random.normal(0, y_var, (batchsize, z_dim / 2))
+	z = np.empty((batchsize, z_dim), dtype=np.float32)
 	for batch in xrange(batchsize):
-		z[batch] = sample(np.array([x[batch], y[batch]]), label_indices[batch], n_labels)
-	
+		for zi in xrange(z_dim / 2):
+			z[batch, zi*2:zi*2+2] = sample(x[batch, zi], y[batch, zi], label_indices[batch], n_labels)
+
 	z = Variable(z)
 	if gpu:
 		z.to_gpu()
 	return z
 
-def sample_z_from_swiss_roll_distribution(batchsize, label_indices, n_labels, gpu=False):
+def sample_z_from_swiss_roll_distribution(batchsize, z_dim, label_indices, n_labels, gpu=False):
 	def sample(label, n_labels):
 		uni = np.random.uniform(0.0, 1.0) / float(n_labels) + float(label) / float(n_labels)
 		r = math.sqrt(uni) * 3.0
@@ -79,11 +84,48 @@ def sample_z_from_swiss_roll_distribution(batchsize, label_indices, n_labels, gp
 		y = r * sin(rad)
 		return np.array([x, y]).reshape((2,))
 
-	z = np.zeros((batchsize, 2), dtype=np.float32)
+	z = np.zeros((batchsize, z_dim), dtype=np.float32)
 	for batch in xrange(batchsize):
-		z[batch] = sample(label_indices[batch], n_labels)
+		for zi in xrange(z_dim / 2):
+			z[batch, zi*2:zi*2+2] = sample(label_indices[batch], n_labels)
 	
 	z = Variable(z)
 	if gpu:
 		z.to_gpu()
 	return z
+
+class Adder(function.Function):
+	def as_mat(self, x):
+		if x.ndim == 2:
+			return x
+		return x.reshape(len(x), -1)
+		
+	def check_type_forward(self, in_types):
+		n_in = in_types.size()
+		type_check.expect(n_in == 2)
+		x_type, label_type = in_types
+
+		type_check.expect(
+			x_type.dtype == np.float32,
+			label_type.dtype == np.float32,
+			x_type.ndim == 2,
+			label_type.ndim == 2,
+		)
+
+	def forward(self, inputs):
+		xp = cuda.get_array_module(inputs[0])
+		x, label = inputs
+		x = self.as_mat(x)
+		label = self.as_mat(label)
+		n_batch = x.shape[0]
+		output = xp.empty((n_batch, x.shape[1] + label.shape[1]), dtype=xp.float32)
+		output[:,:x.shape[1]] = x
+		output[:,x.shape[1]:] = label
+		return output,
+
+	def backward(self, inputs, grad_outputs):
+		x, label = inputs
+		return grad_outputs[0][:,:x.shape[1]], grad_outputs[0][:,x.shape[1]:]
+
+def add_label(x, label):
+	return Adder()(x, label)

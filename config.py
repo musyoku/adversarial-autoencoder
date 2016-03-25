@@ -41,9 +41,13 @@ config.n_x = config.img_width ** 2
 ## 隠れ変数ベクトルの次元
 config.n_z = 100
 
+## Discriminatorへの入力ベクトルの次元数
+## 隠れ絵変数ベクトルにラベル情報を表すone-hotなベクトルを合成する場合
+config.n_dis_inputs = config.n_z
+
 ## Default: 1.0
 ## 重みの初期化
-config.wscale = 1.0
+config.wscale = 0.1
 
 # Encoder(Generator)の設定
 ## xをzに符号化するEncoderとxからzを生成するGeneratorは同一のニューラルネット

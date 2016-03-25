@@ -43,12 +43,9 @@ def sample_x_and_label_from_data_distribution(batchsize, sequential=False):
 
 def visualize_reconstruction():
 	x_batch = sample_x_from_data_distribution(100)
-	
-	z_batch = gen(x_batch, test=True)
-	z_batch.data[:,2:] = 0.0
-	_x_batch = dec(z_batch, test=True)
+	x_batch = dec(gen(x_batch, test=True), test=True)
 	if use_gpu:
-		_x_batch.to_cpu()
+		x_batch.to_cpu()
 
 	fig = pylab.gcf()
 	fig.set_size_inches(16.0, 16.0)
@@ -58,16 +55,15 @@ def visualize_reconstruction():
 	for m in range(100):
 		pylab.subplot(10, 10, m + 1)
 		if config.img_channel == 1:
-			pylab.imshow(np.clip((_x_batch.data[m] + 1.0) / 2.0, 0.0, 1.0).reshape((config.img_width, config.img_width)), interpolation="none")
+			pylab.imshow(np.clip((x_batch.data[m] + 1.0) / 2.0, 0.0, 1.0).reshape((config.img_width, config.img_width)), interpolation="none")
 		elif config.img_channel == 3:
-			pylab.imshow(np.clip((_x_batch.data[m] + 1.0) / 2.0, 0.0, 1.0).reshape((config.img_channel, config.img_width, config.img_width)), interpolation="none")
+			pylab.imshow(np.clip((x_batch.data[m] + 1.0) / 2.0, 0.0, 1.0).reshape((config.img_channel, config.img_width, config.img_width)), interpolation="none")
 		pylab.axis("off")
 	pylab.savefig("%s/reconstruction.png" % args.visualization_dir)
 
 def visualize_walkthrough():
 	x_batch = sample_x_from_data_distribution(20)
 	z_batch = gen(x_batch, test=True)
-	z_batch.data[:,2:] = 0.0
 	if use_gpu:
 		z_batch.to_cpu()
 
@@ -128,7 +124,7 @@ def visualize_labeled_z():
 
 def visualize_swiss_roll_distribution():
 	x_batch, label_batch = sample_x_and_label_from_data_distribution(len(dataset), sequential=True)
-	z_batch = sample_z_from_swiss_roll_distribution(len(dataset), label_batch, 10, use_gpu)
+	z_batch = sample_z_from_swiss_roll_distribution(len(dataset), 10, label_batch, 10, use_gpu)
 	z_batch = z_batch.data
 
 	fig = pylab.gcf()
@@ -136,7 +132,7 @@ def visualize_swiss_roll_distribution():
 	pylab.clf()
 	colors = ["#2103c8", "#0e960e", "#e40402","#05aaa8","#ac02ab","#aba808","#151515","#94a169", "#bec9cd", "#6a6551"]
 	for n in xrange(z_batch.shape[0]):
-		result = pylab.scatter(z_batch[n, 0], z_batch[n, 1], c=colors[label_batch[n]], s=40, marker="o", edgecolors='none')
+		result = pylab.scatter(z_batch[n, 2], z_batch[n, 3], c=colors[label_batch[n]], s=40, marker="o", edgecolors='none')
 
 	classes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 	recs = []

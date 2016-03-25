@@ -2,35 +2,35 @@
 import numpy as np
 import chainer.functions as F
 import chainer.links as L
-from chainer import cuda, optimizers, serializers, Variable
+from chainer import cuda, optimizer, optimizers, serializers, Variable
 import os, sys, time
 sys.path.append(os.path.split(os.getcwd())[0])
+import util
 from args import args
 from config import config
 from model import gen, dis, dec
-from util import *
 
 def sample_x_and_label_from_data_distribution(batchsize):
 	shape = config.img_channel * config.img_width * config.img_width
 	x_batch = np.zeros((batchsize, shape), dtype=np.float32)
 	label_index_batch = np.zeros((batchsize, 1), dtype=np.int32)
-	label_1ofK_batch_extended = np.zeros((batchsize, 12), dtype=np.float32)
+	label_one_hot = np.zeros((batchsize, 10), dtype=np.float32)
 	for j in range(batchsize):
 		data_index = np.random.randint(len(dataset))
 		img = dataset[data_index]
 		x_batch[j] = img.reshape((shape,))
 		label_index_batch[j] = labels[data_index]
-		label_1ofK_batch_extended[j, labels[data_index] + 2] = 1.0
+		label_one_hot[j, labels[data_index]] = 1.0
 	x_batch = Variable(x_batch)
-	label_1ofK_batch_extended = Variable(label_1ofK_batch_extended)
+	label_one_hot = Variable(label_one_hot)
 	if config.use_gpu:
 		x_batch.to_gpu()
-		label_1ofK_batch_extended.to_gpu()
-	return x_batch, label_index_batch, label_1ofK_batch_extended
+		label_one_hot.to_gpu()
+	return x_batch, label_index_batch, label_one_hot
 
 def train(dataset, labels):
-	if config.n_z != 12:
-		raise Exception("The dimension of the latent code z must be 12 (2d for z, 10d for 1-of-K MNIST label).")
+	if config.n_z % 2 != 0:
+		raise Exception("The dimension of the latent code z must be a multiple of 2.")
 	batchsize = 100
 	n_epoch = 10000
 	n_train_each_epoch = 2000
@@ -49,6 +49,9 @@ def train(dataset, labels):
 	optimizer_gen.setup(gen)
 	optimizer_dec.setup(dec)
 	optimizer_dis.setup(dis)
+	optimizer_dec.add_hook(optimizer.WeightDecay(0.0001))
+	optimizer_gen.add_hook(optimizer.WeightDecay(0.0001))
+	optimizer_dis.add_hook(optimizer.WeightDecay(0.0001))
 
 	start_epoch = 1 if args.load_epoch == 0 else args.load_epoch + 1
 
@@ -60,19 +63,14 @@ def train(dataset, labels):
 
 		start_time = time.time()
 
-		z_mask_batch = xp.zeros((batchsize, 12), dtype=xp.float32)
-		z_mask_batch[:,:2] = xp.ones((batchsize, 2), dtype=xp.float32)
-		z_mask_batch = Variable(z_mask_batch)
-		
 		for i in xrange(0, n_train_each_epoch):
 
 			# Sample minibatch of examples
-			x_batch, label_index_batch, label_1ofK_batch_extended = sample_x_and_label_from_data_distribution(batchsize)
+			x_batch, label_index_batch, label_one_hot = sample_x_and_label_from_data_distribution(batchsize)
 
 			# Reconstruction phase
 			z_fake_batch = gen(x_batch)
 			## 12d -> 2d
-			z_fake_batch = z_fake_batch * z_mask_batch
 			_x_batch = dec(z_fake_batch)
 
 			## 復号誤差を最小化する
@@ -88,16 +86,13 @@ def train(dataset, labels):
 			# Adversarial phase
 			for k in xrange(n_steps_to_optimize_dis):
 				if k > 0:
-					x_batch, label_index_batch, label_1ofK_batch_extended = sample_x_and_label_from_data_distribution(batchsize)
+					x_batch, label_index_batch, label_one_hot = sample_x_and_label_from_data_distribution(batchsize)
 
-				z_real_batch = sample_z_from_n_2d_gaussian_mixture(batchsize, label_index_batch, 10, config.use_gpu)
-				z_real_batch_labeled = xp.zeros((batchsize, 12), dtype=xp.float32)
-				z_real_batch_labeled[:,:2] = z_real_batch.data[:,:]
-				z_real_batch_labeled = z_real_batch_labeled + label_1ofK_batch_extended.data
-				z_real_batch_labeled = Variable(z_real_batch_labeled)
+				z_real_batch = util.sample_z_from_n_2d_gaussian_mixture(batchsize, config.n_z, label_index_batch, 10, config.use_gpu)
+				z_real_labeled_batch = util.add_label(z_real_batch, label_one_hot)
 
 				## Discriminator loss
-				p_real_batch = dis(z_real_batch_labeled)
+				p_real_batch = dis(z_real_labeled_batch)
 				## p_real_batch[0] -> 本物である度合い
 				## p_real_batch[1] -> 偽物である度合い
 				loss_dis_real = F.softmax_cross_entropy(p_real_batch, Variable(xp.zeros(batchsize, dtype=np.int32)))
@@ -105,7 +100,7 @@ def train(dataset, labels):
 				## 上で一度z_fake_batchは計算しているため省く
 				if k > 0:
 					z_fake_batch = gen(x_batch)
-				z_fake_batch_labeled = z_fake_batch * z_mask_batch + label_1ofK_batch_extended
+				z_fake_batch_labeled = util.add_label(z_fake_batch, label_one_hot)
 
 				p_fake_batch = dis(z_fake_batch_labeled)
 				## p_fake_batch[0] -> 本物である度合い
@@ -118,7 +113,6 @@ def train(dataset, labels):
 				optimizer_dis.zero_grads()
 				loss_dis.backward()
 				optimizer_dis.update()
-
 
 			## p_fake_batch[0] -> 本物である度合い
 			## p_fake_batch[1] -> 偽物である度合い
@@ -160,5 +154,5 @@ try:
 except:
 	pass
 
-dataset, labels = load_labeled_dataset(args)
+dataset, labels = util.load_labeled_dataset(args)
 train(dataset, labels)
