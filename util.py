@@ -95,11 +95,6 @@ def sample_z_from_swiss_roll_distribution(batchsize, z_dim, label_indices, n_lab
 	return z
 
 class Adder(function.Function):
-	def as_mat(self, x):
-		if x.ndim == 2:
-			return x
-		return x.reshape(len(x), -1)
-		
 	def check_type_forward(self, in_types):
 		n_in = in_types.size()
 		type_check.expect(n_in == 2)
@@ -115,8 +110,6 @@ class Adder(function.Function):
 	def forward(self, inputs):
 		xp = cuda.get_array_module(inputs[0])
 		x, label = inputs
-		x = self.as_mat(x)
-		label = self.as_mat(label)
 		n_batch = x.shape[0]
 		output = xp.empty((n_batch, x.shape[1] + label.shape[1]), dtype=xp.float32)
 		output[:,:x.shape[1]] = x
