@@ -30,7 +30,7 @@ config.img_channel = 1
 config.img_width = 28
 
 ## Batch Normalizationを使うかどうか
-config.enable_batchnorm = True
+config.apply_batchnorm = True
 
 ## GPUを使うかどうか
 config.use_gpu = True
@@ -69,10 +69,7 @@ config.gen_activation_type = "elu"
 config.gen_output_activation_type = None
 
 ## 出力層でBatch Normalizationを使うかどうか
-## 詳細は[Deep Convolutional Generative Adversarial Networks](http://arxiv.org/pdf/1511.06434v2.pdf)
-## ... This was avoided by not applying batchnorm to the generator output layer ...
-## 性質上使ってしまうと隠れ変数ベクトルは平均が0分散が1になるのでp(z)に押し込めなくなると思われる
-config.gen_enable_batchnorm_to_output = False
+config.gen_apply_batchnorm_to_output = False
 
 ## ドロップアウト
 config.gen_enable_dropout = True
@@ -92,10 +89,7 @@ config.dis_activation_type = "elu"
 config.dis_softmax_activation_type = "elu"
 
 ## 入力層でBatch Normalizationを使うかどうか
-## 詳細は[Deep Convolutional Generative Adversarial Networks](http://arxiv.org/pdf/1511.06434v2.pdf)
-## ... This was avoided by not applying batchnorm to ... the discriminator input layer.
-## ラベル情報をone-hotなベクトルで与えている場合はおかしなことになるのでFalseにしておくほうが良いと思われる
-config.dis_enable_batchnorm_to_input = False
+config.dis_apply_batchnorm_to_input = False
 
 ## ドロップアウト
 config.dis_enable_dropout = True
@@ -115,10 +109,7 @@ config.dec_activation_type = "elu"
 config.dec_output_activation_type = "tanh"
 
 ## 出力層でBatch Normalizationを使うかどうか
-## 詳細は[Deep Convolutional Generative Adversarial Networks](http://arxiv.org/pdf/1511.06434v2.pdf)
-## ... This was avoided by not applying batchnorm to the generator output layer ...
-## 使うと出力がtanhと同じになり活性化関数を考える意味がなくなってしまうと思われる
-config.dec_enable_batchnorm_to_output = False
+config.dec_apply_batchnorm_to_output = False
 
 ## ドロップアウト
 config.dec_enable_dropout = True

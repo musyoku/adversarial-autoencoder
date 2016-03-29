@@ -29,8 +29,8 @@ def build(config):
 	gen.activation_type = config.gen_activation_type
 	gen.output_activation_type = config.gen_output_activation_type
 	gen.encoder_type = config.gen_encoder_type
-	gen.enable_batchnorm = config.enable_batchnorm
-	gen.enable_batchnorm_to_output = config.gen_enable_batchnorm_to_output
+	gen.apply_batchnorm = config.apply_batchnorm
+	gen.apply_batchnorm_to_output = config.gen_apply_batchnorm_to_output
 	gen.enable_dropout = config.gen_enable_dropout
 
 
@@ -48,8 +48,8 @@ def build(config):
 	dis.n_layers = len(dis_layer_units)
 	dis.activation_type = config.dis_activation_type
 	dis.softmax_activation_type = config.dis_softmax_activation_type
-	dis.enable_batchnorm = config.enable_batchnorm
-	dis.enable_batchnorm_to_input = config.dis_enable_batchnorm_to_input
+	dis.apply_batchnorm = config.apply_batchnorm
+	dis.apply_batchnorm_to_input = config.dis_apply_batchnorm_to_input
 	dis.enable_dropout = config.dis_enable_dropout
 
 	# Decoder
@@ -66,8 +66,8 @@ def build(config):
 	dec.n_layers = len(dec_layer_units)
 	dec.activation_type = config.dec_activation_type
 	dec.output_activation_type = config.dec_output_activation_type
-	dec.enable_batchnorm = config.enable_batchnorm
-	dec.enable_batchnorm_to_output = config.dec_enable_batchnorm_to_output
+	dec.apply_batchnorm = config.apply_batchnorm
+	dec.apply_batchnorm_to_output = config.dec_apply_batchnorm_to_output
 	dec.enable_dropout = config.dec_enable_dropout
 
 	return gen, dis, dec

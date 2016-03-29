@@ -19,7 +19,7 @@ class Generator(chainer.Chain):
 		# Hidden
 		for i in range(self.n_layers - 1):
 			u = getattr(self, "layer_%i" % i)(chain[-1])
-			if self.enable_batchnorm:
+			if self.apply_batchnorm:
 				u = getattr(self, "batchnorm_%i" % i)(u, test=test)
 			output = activate(u)
 			if self.enable_dropout:
@@ -28,7 +28,7 @@ class Generator(chainer.Chain):
 
 		# Output
 		u = getattr(self, "layer_%i" % (self.n_layers - 1))(chain[-1])
-		if self.enable_batchnorm and self.enable_batchnorm_to_output:
+		if self.apply_batchnorm and self.apply_batchnorm_to_output:
 			u = getattr(self, "batchnorm_%i" % (self.n_layers - 1))(u, test=test)
 		if self.output_activation_type is None:
 			chain.append(u)
@@ -46,7 +46,7 @@ class Generator(chainer.Chain):
 		# Hidden
 		for i in range(self.n_layers - 1):
 			u = getattr(self, "layer_mean_%i" % i)(chain_mean[-1])
-			if self.enable_batchnorm:
+			if self.apply_batchnorm:
 				u = getattr(self, "batchnorm_mean_%i" % i)(u, test=test)
 			output = activate(u)
 			if self.enable_dropout:
@@ -54,7 +54,7 @@ class Generator(chainer.Chain):
 			chain_mean.append(output)
 
 			u = getattr(self, "layer_variance_%i" % i)(chain_variance[-1])
-			if self.enable_batchnorm:
+			if self.apply_batchnorm:
 				u = getattr(self, "batchnorm_variance_%i" % i)(u, test=test)
 			output = activate(u)
 			if self.enable_dropout:
@@ -64,7 +64,7 @@ class Generator(chainer.Chain):
 
 		# Output
 		u = getattr(self, "layer_mean_%i" % (self.n_layers - 1))(chain_mean[-1])
-		if self.enable_batchnorm and self.enable_batchnorm_to_output:
+		if self.apply_batchnorm and self.apply_batchnorm_to_output:
 			u = getattr(self, "batchnorm_mean_%i" % (self.n_layers - 1))(u, test=test)
 		if self.output_activation_type is None:
 			chain_mean.append(u)
@@ -72,7 +72,7 @@ class Generator(chainer.Chain):
 			chain_mean.append(activations[self.output_activation_type](u))
 
 		u = getattr(self, "layer_variance_%i" % (self.n_layers - 1))(chain_variance[-1])
-		if self.enable_batchnorm and self.enable_batchnorm_to_output:
+		if self.apply_batchnorm and self.apply_batchnorm_to_output:
 			u = getattr(self, "batchnorm_variance_%i" % (self.n_layers - 1))(u, test=test)
 		if self.output_activation_type is None:
 			chain_variance.append(u)
@@ -115,8 +115,8 @@ class Discriminator(chainer.Chain):
 		# Hidden
 		for i in range(self.n_layers - 1):
 			u = getattr(self, "layer_%i" % i)(chain[-1])
-			if self.enable_batchnorm:
-				if i == 0 and self.enable_batchnorm_to_input == False:
+			if self.apply_batchnorm:
+				if i == 0 and self.apply_batchnorm_to_input == False:
 					pass
 				else:
 					u = getattr(self, "batchnorm_%i" % i)(u, test=test)
@@ -127,7 +127,7 @@ class Discriminator(chainer.Chain):
 
 		# Output
 		u = getattr(self, "layer_%i" % (self.n_layers - 1))(chain[-1])
-		if self.enable_batchnorm:
+		if self.apply_batchnorm:
 			u = getattr(self, "batchnorm_%i" % (self.n_layers - 1))(u, test=test)
 		if self.softmax_activation_type is None:
 			chain.append(u)
@@ -150,7 +150,7 @@ class Decoder(chainer.Chain):
 		# Hidden
 		for i in range(self.n_layers - 1):
 			u = getattr(self, "layer_%i" % i)(chain[-1])
-			if self.enable_batchnorm:
+			if self.apply_batchnorm:
 				u = getattr(self, "batchnorm_%i" % i)(u, test=test)
 			output = activate(u)
 			if self.enable_dropout:
@@ -159,7 +159,7 @@ class Decoder(chainer.Chain):
 
 		# Output
 		u = getattr(self, "layer_%i" % (self.n_layers - 1))(chain[-1])
-		if self.enable_batchnorm and self.enable_batchnorm_to_output:
+		if self.apply_batchnorm and self.apply_batchnorm_to_output:
 			u = getattr(self, "batchnorm_%i" % (self.n_layers - 1))(u, test=test)
 		if self.output_activation_type is None:
 			chain.append(u)
