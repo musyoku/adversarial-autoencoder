@@ -49,9 +49,9 @@ def train(dataset, labels):
 	optimizer_gen.setup(gen)
 	optimizer_dec.setup(dec)
 	optimizer_dis.setup(dis)
-	# optimizer_dec.add_hook(optimizer.WeightDecay(0.0001))
-	# optimizer_gen.add_hook(optimizer.WeightDecay(0.0001))
-	# optimizer_dis.add_hook(optimizer.WeightDecay(0.0001))
+	optimizer_dec.add_hook(optimizer.WeightDecay(0.0001))
+	optimizer_gen.add_hook(optimizer.WeightDecay(0.0001))
+	optimizer_dis.add_hook(optimizer.WeightDecay(0.0001))
 
 	start_epoch = 1 if args.load_epoch == 0 else args.load_epoch + 1
 
