@@ -43,10 +43,7 @@ def sample_x_and_label_from_data_distribution(batchsize, sequential=False):
 
 def visualize_reconstruction():
 	x_batch = sample_x_from_data_distribution(100)
-	
-	z_batch = gen(x_batch, test=True)
-	z_batch.data[:,2:] = 0.0
-	_x_batch = dec(z_batch, test=True)
+	_x_batch = dec(gen(x_batch), test=True)
 	if use_gpu:
 		_x_batch.to_cpu()
 
