@@ -64,7 +64,6 @@ def visualize_reconstruction():
 def visualize_walkthrough():
 	x_batch = sample_x_from_data_distribution(20)
 	z_batch = gen(x_batch, test=True)
-	z_batch.data[:,2:] = 0.0
 	if use_gpu:
 		z_batch.to_cpu()
 
@@ -98,8 +97,6 @@ def visualize_labeled_z():
 	x_batch, label_batch = sample_x_and_label_from_data_distribution(len(dataset), sequential=True)
 	z_batch = gen(x_batch, test=True)
 	z_batch = z_batch.data
-	# if z_batch[0].shape[0] != 2:
-	# 	raise Exception("Latent code vector dimension must be 2.")
 
 	fig = pylab.gcf()
 	fig.set_size_inches(20.0, 16.0)
