@@ -1,124 +1,128 @@
 # -*- coding: utf-8 -*-
-import os, re, math, pylab
+import os, re, math, pylab, sys
 from math import *
 import numpy as np
 from StringIO import StringIO
 from PIL import Image
 from chainer import cuda, Variable, function
 from chainer.utils import type_check
+from sklearn import preprocessing
+import matplotlib.patches as mpatches
 
-def load_images(args, convert_to_grayscale=True):
+def load_images(image_dir, convert_to_grayscale=True):
 	dataset = []
-	fs = os.listdir(args.image_dir)
-	print "loading", len(fs), "images..."
+	fs = os.listdir(image_dir)
+	i = 0
 	for fn in fs:
-		f = open("%s/%s" % (args.image_dir, fn), "rb")
+		f = open("%s/%s" % (image_dir, fn), "rb")
 		if convert_to_grayscale:
 			img = np.asarray(Image.open(StringIO(f.read())).convert("L"), dtype=np.float32) / 255.0
 		else:
 			img = np.asarray(Image.open(StringIO(f.read())).convert("RGB"), dtype=np.float32).transpose(2, 0, 1) / 255.0
-		img = (img - 0.5) / 0.5
 		dataset.append(img)
 		f.close()
+		i += 1
+		if i % 100 == 0:
+			sys.stdout.write("\rloading images...({:d} / {:d})".format(i, len(fs)))
+			sys.stdout.flush()
+	sys.stdout.write("\n")
 	return dataset
 
-def load_labeled_dataset(args, convert_to_grayscale=True):
+def load_labeled_images(image_dir, convert_to_grayscale=True):
 	dataset = []
 	labels = []
-	fs = os.listdir(args.image_dir)
-	print "loading", len(fs), "images..."
+	fs = os.listdir(image_dir)
+	i = 0
 	for fn in fs:
-		m = re.match("(.)_.+", fn)
+		m = re.match("([0-9]+)_.+", fn)
 		label = int(m.group(1))
-		f = open("%s/%s" % (args.image_dir, fn), "rb")
+		f = open("%s/%s" % (image_dir, fn), "rb")
 		if convert_to_grayscale:
 			img = np.asarray(Image.open(StringIO(f.read())).convert("L"), dtype=np.float32) / 255.0
 		else:
 			img = np.asarray(Image.open(StringIO(f.read())).convert("RGB"), dtype=np.float32).transpose(2, 0, 1) / 255.0
-		img = (img - 0.5) / 0.5
 		dataset.append(img)
 		labels.append(label)
 		f.close()
+		i += 1
+		if i % 100 == 0:
+			sys.stdout.write("\rloading images...({:d} / {:d})".format(i, len(fs)))
+			sys.stdout.flush()
+	sys.stdout.write("\n")
 	return dataset, labels
 
-def sample_z_from_noise_prior(batchsize, z_dim, gpu=False):
-	z = np.random.uniform(-2, 2, (batchsize, z_dim)).astype(np.float32)
-	z = Variable(z)
-	if gpu:
-		z.to_gpu()
-	return z
+def create_semisupervised(dataset, labels, num_validation_data=10000, num_labeled_data=100, num_types_of_label=10):
+	if len(dataset) < num_validation_data + num_labeled_data:
+		raise Exception("len(dataset) < num_validation_data + num_labeled_data")
+	training_labeled_x = []
+	training_unlabeled_x = []
+	validation_x = []
+	validation_labels = []
+	training_labels = []
+	indices_for_label = {}
+	num_data_per_label = int(num_labeled_data / num_types_of_label)
+	num_unlabeled_data = len(dataset) - num_validation_data - num_labeled_data
 
-def sample_z_from_n_2d_gaussian_mixture(batchsize, z_dim, label_indices, n_labels, gpu=False):
-	if z_dim % 2 != 0:
-		raise Exception("z_dim must be a multiple of 2.")
+	indices = np.arange(len(dataset))
+	np.random.shuffle(indices)
 
-	def sample(x, y, label, n_labels):
-		shift = 1.4
-		r = 2.0 * np.pi / float(n_labels) * float(label)
-		new_x = x * cos(r) - y * sin(r)
-		new_y = x * sin(r) + y * cos(r)
-		new_x += shift * cos(r)
-		new_y += shift * sin(r)
-		return np.array([new_x, new_y]).reshape((2,))
+	def check(index):
+		label = labels[index]
+		if label not in indices_for_label:
+			indices_for_label[label] = []
+			return True
+		if len(indices_for_label[label]) < num_data_per_label:
+			for i in indices_for_label[label]:
+				if i == index:
+					return False
+			return True
+		return False
 
-	x_var = 0.5
-	y_var = 0.05
-	x = np.random.normal(0, x_var, (batchsize, z_dim / 2))
-	y = np.random.normal(0, y_var, (batchsize, z_dim / 2))
-	z = np.empty((batchsize, z_dim), dtype=np.float32)
-	for batch in xrange(batchsize):
-		for zi in xrange(z_dim / 2):
-			z[batch, zi*2:zi*2+2] = sample(x[batch, zi], y[batch, zi], label_indices[batch], n_labels)
+	for n in xrange(len(dataset)):
+		index = indices[n]
+		if check(index):
+			indices_for_label[labels[index]].append(index)
+			training_labeled_x.append(dataset[index])
+			training_labels.append(labels[index])
+		else:
+			if len(training_unlabeled_x) < num_unlabeled_data:
+				training_unlabeled_x.append(dataset[index])
+			else:
+				validation_x.append(dataset[index])
+				validation_labels.append(labels[index])
 
-	z = Variable(z)
-	if gpu:
-		z.to_gpu()
-	return z
+	return training_labeled_x, training_labels, training_unlabeled_x, validation_x, validation_labels
 
-def sample_z_from_swiss_roll_distribution(batchsize, z_dim, label_indices, n_labels, gpu=False):
-	def sample(label, n_labels):
-		uni = np.random.uniform(0.0, 1.0) / float(n_labels) + float(label) / float(n_labels)
-		r = math.sqrt(uni) * 3.0
-		rad = np.pi * 4.0 * math.sqrt(uni)
-		x = r * cos(rad)
-		y = r * sin(rad)
-		return np.array([x, y]).reshape((2,))
+def sample_x_variable(batchsize, ndim_x, dataset, gpu_enabled=True):
+	x_batch = np.zeros((batchsize, ndim_x), dtype=np.float32)
+	indices = np.random.choice(np.arange(len(dataset), dtype=np.int32), size=batchsize, replace=False)
+	for j in range(batchsize):
+		data_index = indices[j]
+		img = dataset[data_index]
+		x_batch[j] = img.reshape((ndim_x,))
+	x_batch = Variable(x_batch)
+	if gpu_enabled:
+		x_batch.to_gpu()
+	return x_batch
 
-	z = np.zeros((batchsize, z_dim), dtype=np.float32)
-	for batch in xrange(batchsize):
-		for zi in xrange(z_dim / 2):
-			z[batch, zi*2:zi*2+2] = sample(label_indices[batch], n_labels)
-	
-	z = Variable(z)
-	if gpu:
-		z.to_gpu()
-	return z
-
-class Adder(function.Function):
-	def check_type_forward(self, in_types):
-		n_in = in_types.size()
-		type_check.expect(n_in == 2)
-		x_type, label_type = in_types
-
-		type_check.expect(
-			x_type.dtype == np.float32,
-			label_type.dtype == np.float32,
-			x_type.ndim == 2,
-			label_type.ndim == 2,
-		)
-
-	def forward(self, inputs):
-		xp = cuda.get_array_module(inputs[0])
-		x, label = inputs
-		n_batch = x.shape[0]
-		output = xp.empty((n_batch, x.shape[1] + label.shape[1]), dtype=xp.float32)
-		output[:,:x.shape[1]] = x
-		output[:,x.shape[1]:] = label
-		return output,
-
-	def backward(self, inputs, grad_outputs):
-		x, label = inputs
-		return grad_outputs[0][:,:x.shape[1]], grad_outputs[0][:,x.shape[1]:]
-
-def add_label(x, label):
-	return Adder()(x, label)
+def sample_x_and_label_variables(batchsize, ndim_x, ndim_y, dataset, labels, gpu_enabled=True):
+	x_batch = np.zeros((batchsize, ndim_x), dtype=np.float32)
+	# one-hot
+	y_batch = np.zeros((batchsize, ndim_y), dtype=np.float32)
+	# label id
+	label_batch = np.zeros((batchsize,), dtype=np.int32)
+	indices = np.random.choice(np.arange(len(dataset), dtype=np.int32), size=batchsize, replace=False)
+	for j in range(batchsize):
+		data_index = indices[j]
+		img = dataset[data_index]
+		x_batch[j] = img.reshape((ndim_x,))
+		y_batch[j, labels[data_index]] = 1
+		label_batch[j] = labels[data_index]
+	x_batch = Variable(x_batch)
+	y_batch = Variable(y_batch)
+	label_batch = Variable(label_batch)
+	if gpu_enabled:
+		x_batch.to_gpu()
+		y_batch.to_gpu()
+		label_batch.to_gpu()
+	return x_batch, y_batch, label_batch

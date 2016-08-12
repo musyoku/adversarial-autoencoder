@@ -1,80 +1,93 @@
-# Adversarial Autoencoder
+## Adversarial Autoencoder
 
-This is the [Chainer](http://chainer.org/) implementation of [Adversarial Autoencoder [arXiv:1511.05644]](http://arxiv.org/pdf/1511.05644v1.pdf)
+This is the Chainer implementation of [Adversarial Autoencoder [arXiv:1511.05644]](http://arxiv.org/abs/1511.05644)
 
-[この記事](http://musyoku.github.io/2016/02/22/adversarial-autoencoder/)で実装したコードです。
+[この記事](http://musyoku.github.io/2016/02/22/adversarial-autoencoder/)と[この記事](http://musyoku.github.io/2016/08/09/Adversarial-AutoeEcoder%E3%81%A7%E5%8D%8A%E6%95%99%E5%B8%AB%E3%81%82%E3%82%8A%E5%AD%A6%E7%BF%92/)で実装したコードです。
 
-## Requirements
+論文で報告されている結果があまり出ていないためコードに不具合があるかもしれません。
 
-- Chainer 1.6+
+See also:[VAE](https://github.com/musyoku/variational-autoencoder)
 
-## Running
+### Requirements
 
-Create "images" directory in the root or use "image_dir" option to specify the directory that contains training images.
+- Chainer 1.8+
+- Pillow
+- Pylab
+- matplotlib.patches
+- pandas
 
-Options:
-- --image_dir
-	- Specify the directory that contains the training images.
-- --load_epoch 
-	- Specify the model you want to load.
+#### Download MNIST
 
-### Class label
+run `mnist-tools.py` to download and extract MNIST.
 
-Add the label index (must start 0) to the image filename.
+#### How to label your own dataset 
 
-format:	`[0-9]+_.+\.(bmp|png|jpg)`
+You can provide label information by filename.
+
+format:
+
+`{label_id}_{unique_filename}.{extension}`
+
+regex:
+
+`([0-9]+)_.+\.(bmp|png|jpg)`
 
 e.g. MNIST
 
-![example](http://musyoku.github.io/images/post/2016-02-22/class_label_example.png)
+![labeling](http://musyoku.github.io/images/post/2016-07-02/labeling.png)
 
-### Training
+## Adversarial Regularization
 
-e.g. swiss roll distribution
+run `upervised/regularize_z/train.py`
 
-`cd swiss_roll`
+![result](http://musyoku.github.io/images/post/2016-08-09/supervised/regularize_z/labeled_z_10_gaussian.png)
 
-`python train.py`
+![result](http://musyoku.github.io/images/post/2016-08-09/supervised/regularize_z/labeled_z_swiss_roll.png)
 
-### Visualizing:
+## Supervised Adversarial Autoencoders
 
-e.g. swiss roll distribution
+run `supervised/learn_style/train.py`
 
-`cd swiss_roll`
+![result](http://musyoku.github.io/images/post/2016-08-09/supervised/learn_style/analogy.png)
 
-`python visualize.py --load_epoch 10`
+## Semi-Supervised Adversarial Autoencoders
 
+run `semi-supervised/classification/train.py`
 
-## MNIST Unsupervised Learning
+### 100 labeled data and 49,900 unlabeled data
 
-### Uniform (-2.0 ~ 2.0)
+![result](http://musyoku.github.io/images/post/2016-08-09/semi_supervised.png)
 
-#### 1,000 train data
+## Unsupervised Clustering with Adversarial Autoencoders
 
-![Uniform](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/uniform_train_z.png?raw=true)
+run `unsupervised/clustering/train.py`
 
-#### 9,000 test data
+### 16 clusters
 
-![Uniform](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/uniform_test_z.png?raw=true)
+![result](http://musyoku.github.io/images/post/2016-08-09/unsupervised/clustering/clusters_16.png)
 
-## MNIST Supervised Learning
+### 32 clusters
 
-### 10 2D-Gaussian Distribution
+![result](http://musyoku.github.io/images/post/2016-08-09/unsupervised/clustering/clusters_32.png)
 
-#### 1,000 train data 
+I think I need more training time.
 
-![10 2D-Gaussian](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/10_2d-gaussian_train_labeled_z.png?raw=true)
+## Dimensionality Reduction with Adversarial Autoencoders
 
-#### 9,000 test data
+run `semi-supervised/dim_reduction/train.py`
 
-![10 2D-Gaussian](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/10_2d-gaussian_test_labeled_z.png?raw=true)
+or
 
-### Swiss Roll Distribution
+run `unsupervised/dim_reduction/train.py`
 
-#### 1,000 train data
+### 100 labeled
 
-![Swiss Roll](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/swiss_roll_train_labeled_z.png?raw=true)
+![result](http://musyoku.github.io/images/post/2016-08-09/semi-supervised/dim_reduction/labeled_z_100.png)
 
-#### 9,000 test data
+### 1000 labeled
 
-![Swiss Roll](https://github.com/musyoku/adversarial-autoencoder/blob/master/example/swiss_roll_test_labeled_z.png?raw=true)
+![result](http://musyoku.github.io/images/post/2016-08-09/semi-supervised/dim_reduction/labeled_z_1000.png)
+
+### unsupervised 20 clusters
+
+![result](http://musyoku.github.io/images/post/2016-08-09/unsupervised/dim_reduction/labeled_z.png)
