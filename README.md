@@ -1,8 +1,8 @@
-## Adversarial Autoencoder
+## Adversarial AutoEncoder
 
 This is the Chainer implementation of [Adversarial Autoencoder [arXiv:1511.05644]](http://arxiv.org/abs/1511.05644)
 
-[この記事](http://musyoku.github.io/2016/02/22/adversarial-autoencoder/)と[この記事](http://musyoku.github.io/2016/08/09/Adversarial-AutoeEcoder%E3%81%A7%E5%8D%8A%E6%95%99%E5%B8%AB%E3%81%82%E3%82%8A%E5%AD%A6%E7%BF%92/)で実装したコードです。
+[この記事](http://musyoku.github.io/2016/02/22/adversarial-autoencoder/)と[この記事](http://musyoku.github.io/2016/08/09/Adversarial-AutoeEncoder%E3%81%A7%E5%8D%8A%E6%95%99%E5%B8%AB%E3%81%82%E3%82%8A%E5%AD%A6%E7%BF%92/)で実装したコードです。
 
 論文で報告されている結果があまり出ていないためコードに不具合があるかもしれません。
 
