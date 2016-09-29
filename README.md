@@ -6,7 +6,8 @@ This is the Chainer implementation of [Adversarial Autoencoder [arXiv:1511.05644
 
 論文で報告されている結果があまり出ていないためコードに不具合があるかもしれません。
 
-See also:[VAE](https://github.com/musyoku/variational-autoencoder)
+See also:[Variational AutoEncoder](https://github.com/musyoku/variational-autoencoder)
+See also:[Auxiliary Deep Generative Model](https://github.com/musyoku/adgm)
 
 ### Requirements
 
