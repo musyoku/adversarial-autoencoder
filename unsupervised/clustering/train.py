@@ -1,62 +1,94 @@
-# -*- coding: utf-8 -*-
-import os, sys, time
 import numpy as np
-from chainer import cuda, Variable
-sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "../../")))
-import util
+import os, sys, time
+from chainer import cuda
+from chainer import functions as F
+from model import aae
+from progress import Progress
 from args import args
-from model import conf, aae
+import dataset
 import sampler
 
-max_epoch = 1000
-num_trains_per_epoch = 1000
-batchsize = 100
-n_steps_to_optimize_dis = 1
+# _l -> labeled
+# _u -> unlabeled
+def main():
+	# load MNIST images
+	images, labels = dataset.load_train_images()
 
-dataset = util.load_images(args.train_image_dir)
+	# config
+	config = aae.config
 
-def sample_data():
-	return util.sample_x_variable(batchsize, conf.ndim_x, dataset, gpu_enabled=conf.gpu_enabled)
+	# settings
+	max_epoch = 1000
+	num_trains_per_epoch = 5000
+	batchsize = 100
+	alpha = 1
 
-total_time = 0
-for epoch in xrange(1, max_epoch + 1):
+	# seed
+	np.random.seed(args.seed)
+	if args.gpu_device != -1:
+		cuda.cupy.random.seed(args.seed)
 
-	sum_loss_autoencoder = 0
-	sum_loss_discriminator = 0
-	sum_loss_generator = 0
-	epoch_time = time.time()
+	# classification
+	# 0 -> true sample
+	# 1 -> generated sample
+	class_true = aae.to_variable(np.zeros(batchsize, dtype=np.int32))
+	class_fake = aae.to_variable(np.ones(batchsize, dtype=np.int32))
 
-	for t in xrange(1, num_trains_per_epoch + 1):
-		# reconstruction phase
-		x = sample_data()
-		sum_loss_autoencoder += aae.train_autoencoder_unsupervised(x)
+	# training
+	progress = Progress()
+	for epoch in xrange(1, max_epoch):
+		progress.start_epoch(epoch, max_epoch)
+		sum_loss_reconstruction = 0
+		sum_loss_discriminator = 0
+		sum_loss_generator = 0
 
-		# regularization phase
-		## train discriminator
-		loss_discriminator = 0
-		for k in xrange(n_steps_to_optimize_dis):
-			if k > 0:
-				x = sample_data()
-			z_true = sampler.gaussian(batchsize, conf.ndim_z)
-			y_true = sampler.onehot_categorical(batchsize, conf.ndim_y)
-			loss_discriminator += aae.train_discriminator_yz(x, y_true, z_true)
-		loss_discriminator /= n_steps_to_optimize_dis
-		sum_loss_discriminator += loss_discriminator
+		for t in xrange(num_trains_per_epoch):
+			# sample from data distribution
+			images_u = dataset.sample_unlabeled_data(images, batchsize, config.ndim_x)
 
-		## train generator
-		sum_loss_generator += aae.train_generator_x_yz(x)
+			# reconstruction phase
+			q_y_x_u, z_u = aae.encode_x_yz(images_u, apply_softmax=True)
+			reconstruction_u = aae.decode_yz_x(q_y_x_u, z_u)
+			loss_reconstruction = F.mean_squared_error(aae.to_variable(images_u), reconstruction_u)
+			aae.backprop_generator(loss_reconstruction)
+			aae.backprop_decoder(loss_reconstruction)
 
-		if t % 10 == 0:
-			sys.stdout.write("\rTraining in progress...({} / {})".format(t, num_trains_per_epoch))
-			sys.stdout.flush()
+			# adversarial phase
+			y_fake_u, z_fake_u = aae.encode_x_yz(images_u, apply_softmax=True)
+			z_true_u = sampler.gaussian(batchsize, config.ndim_z, mean=0, var=1)
+			y_true_u = sampler.onehot_categorical(batchsize, config.ndim_y)
+			discrimination_z_true = aae.discriminate_z(z_true_u, apply_softmax=False)
+			discrimination_y_true = aae.discriminate_y(y_true_u, apply_softmax=False)
+			discrimination_z_fake = aae.discriminate_z(z_fake_u, apply_softmax=False)
+			discrimination_y_fake = aae.discriminate_y(y_fake_u, apply_softmax=False)
+			loss_discriminator_z = F.softmax_cross_entropy(discrimination_z_true, class_true) + F.softmax_cross_entropy(discrimination_z_fake, class_fake)
+			loss_discriminator_y = F.softmax_cross_entropy(discrimination_y_true, class_true) + F.softmax_cross_entropy(discrimination_y_fake, class_fake)
+			loss_discriminator = loss_discriminator_z + loss_discriminator_y
+			aae.backprop_discriminator(loss_discriminator)
 
-	sys.stdout.write("\n")
-	epoch_time = time.time() - epoch_time
-	total_time += epoch_time
-	print "epoch:", epoch
-	print "  loss:"
-	print "    autoencoder  : {:.4f}".format(sum_loss_autoencoder / num_trains_per_epoch)
-	print "    discriminator: {:.4f}".format(sum_loss_discriminator / num_trains_per_epoch)
-	print "    generator    : {:.4f}".format(sum_loss_generator / num_trains_per_epoch)
-	print "  time: {} min".format(int(epoch_time / 60)), "total: {} min".format(int(total_time / 60))
-	aae.save(args.model_dir)
+			# adversarial phase
+			y_fake_u, z_fake_u = aae.encode_x_yz(images_u, apply_softmax=True)
+			discrimination_z_fake = aae.discriminate_z(z_fake_u, apply_softmax=False)
+			discrimination_y_fake = aae.discriminate_y(y_fake_u, apply_softmax=False)
+			loss_generator_z = F.softmax_cross_entropy(discrimination_z_fake, class_true)
+			loss_generator_y = F.softmax_cross_entropy(discrimination_y_fake, class_true)
+			loss_generator = loss_generator_z + loss_generator_y
+			aae.backprop_generator(loss_generator)
+
+			sum_loss_reconstruction += float(loss_reconstruction.data)
+			sum_loss_discriminator += float(loss_discriminator.data)
+			sum_loss_generator += float(loss_generator.data)
+
+			if t % 10 == 0:
+				progress.show(t, num_trains_per_epoch, {})
+
+		aae.save(args.model_dir)
+		
+		progress.show(num_trains_per_epoch, num_trains_per_epoch, {
+			"loss_r": sum_loss_reconstruction / num_trains_per_epoch,
+			"loss_d": sum_loss_discriminator / num_trains_per_epoch,
+			"loss_g": sum_loss_generator / num_trains_per_epoch,
+		})
+
+if __name__ == "__main__":
+	main()

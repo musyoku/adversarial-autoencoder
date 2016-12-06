@@ -1,8 +1,0 @@
-# ignore all
-*
-
-# allow any
-!*/
-!*.py
-!*.md
-!/example/*.png

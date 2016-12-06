@@ -50,15 +50,15 @@ class AAE(aae.AAE):
 			z = F.gaussian(z_mean, z_ln_var)
 		return z
 
-	def decode_z_x(self, z, test=False):
-		z = self.to_variable(z)
-		x = self.decoder(z, test=test)
-		return x
-
-	def discriminate_z(self, y, z, test=False, apply_softmax=True):
+	def decode_yz_x(self, y, z, test=False):
 		y = self.to_variable(y)
 		z = self.to_variable(z)
-		prob = self.discriminator(y, z, test=test)
+		x = self.decoder(y, z, test=test)
+		return x
+
+	def discriminate_z(self, z_batch, test=False, apply_softmax=True):
+		z_batch = self.to_variable(z_batch)
+		prob = self.discriminator(z_batch, test=test)
 		if apply_softmax:
 			prob = F.softmax(prob)
 		return prob

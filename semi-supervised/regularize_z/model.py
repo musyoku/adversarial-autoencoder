@@ -4,7 +4,7 @@ import json, os, sys
 from chainer import cuda
 from args import args
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "../../")))
-from aae_supervised import AAE, Config
+from aae_regularized import AAE, Config
 from sequential import Sequential
 from sequential.layers import Linear, Merge, BatchNormalization, Gaussian
 from sequential.functions import Activation, dropout, gaussian_noise, tanh, sigmoid
@@ -27,7 +27,7 @@ else:
 	config = Config()
 	config.ndim_x = 28 * 28
 	config.ndim_y = 10
-	config.ndim_z = 15
+	config.ndim_z = 2
 	config.distribution_z = "deterministic"	# deterministic or gaussian
 	config.weight_init_std = 0.001
 	config.weight_initializer = "Normal"
@@ -39,8 +39,6 @@ else:
 	config.weight_decay = 0
 
 	decoder = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
-	decoder.add(Merge(num_inputs=2, out_size=1000, nobias=True))
-	decoder.add(Activation(config.nonlinearity))
 	decoder.add(Linear(None, 1000))
 	decoder.add(Activation(config.nonlinearity))
 	decoder.add(Linear(None, 1000))
@@ -49,14 +47,15 @@ else:
 	decoder.add(sigmoid())
 
 	discriminator = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
+	discriminator.add(Merge(num_inputs=2, out_size=1000, nobias=True))
 	discriminator.add(gaussian_noise(std=0.3))
-	discriminator.add(Linear(config.ndim_z, 1000))
+	discriminator.add(Activation(config.nonlinearity))
+	discriminator.add(Linear(None, 1000))
 	discriminator.add(Activation(config.nonlinearity))
 	discriminator.add(Linear(None, 1000))
 	discriminator.add(Activation(config.nonlinearity))
 	discriminator.add(Linear(None, 2))
 
-	# z = generator(x)
 	generator = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
 	generator.add(Linear(config.ndim_x, 1000))
 	generator.add(Activation(config.nonlinearity))

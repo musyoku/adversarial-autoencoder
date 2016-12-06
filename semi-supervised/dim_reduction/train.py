@@ -1,118 +1,143 @@
-# -*- coding: utf-8 -*-
-import os, sys, time
 import numpy as np
-from chainer import cuda, Variable
+import os, sys, time
+from chainer import cuda
+from chainer import functions as F
 import pandas as pd
-sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "../../")))
-import util
+from model import aae
+from progress import Progress
 from args import args
-from model import conf, aae
+import dataset
 import sampler
 
-max_epoch = 1000
-num_trains_per_epoch = 1000
-batchsize = 100
-n_steps_to_optimize_dis = 1
+def main():
+	# load MNIST images
+	images, labels = dataset.load_train_images()
 
-# Create labeled/unlabeled split in training set
-n_types_of_label = conf.ndim_y
-n_labeled_data = args.n_labeled_data
-print "labeled data:", n_labeled_data
-n_validation_data = 10000
+	# config
+	config = aae.config
 
-# Export result to csv
-csv_epoch = []
+	# settings
+	# _l -> labeled
+	# _u -> unlabeled
+	max_epoch = 1000
+	num_trains_per_epoch = 5000
+	batchsize_l = 100
+	batchsize_u = 100
+	alpha = 1
 
-dataset, labels = util.load_labeled_images(args.train_image_dir)
-labeled_dataset, labels, unlabeled_dataset, validation_dataset, validation_labels = util.create_semisupervised(dataset, labels, n_validation_data, n_labeled_data, n_types_of_label)
+	# seed
+	np.random.seed(args.seed)
+	if args.gpu_device != -1:
+		cuda.cupy.random.seed(args.seed)
 
-def sample_labeled_data():
-	x, y_onehot, y_id = util.sample_x_and_label_variables(batchsize, conf.ndim_x, conf.ndim_y, labeled_dataset, labels, gpu_enabled=conf.gpu_enabled)
-	noise = sampler.gaussian(batchsize, conf.ndim_x, mean=0, var=0.3, gpu_enabled=conf.gpu_enabled)
-	# x.data += noise.data
-	return x, y_onehot, y_id
+	# save validation accuracy per epoch
+	csv_results = []
 
-def sample_unlabeled_data():
-	x = util.sample_x_variable(batchsize, conf.ndim_x, unlabeled_dataset, gpu_enabled=conf.gpu_enabled)
-	noise = sampler.gaussian(batchsize, conf.ndim_x, mean=0, var=0.3, gpu_enabled=conf.gpu_enabled)
-	# x.data += noise.data
-	return x
+	# create semi-supervised split
+	num_validation_data = 10000
+	num_labeled_data = 100
+	num_types_of_label = 10
+	training_images_l, training_labels_l, training_images_u, validation_images, validation_labels = dataset.create_semisupervised(images, labels, num_validation_data, num_labeled_data, num_types_of_label, seed=args.seed)
 
-def sample_validation_data():
-	return util.sample_x_and_label_variables(n_validation_data, conf.ndim_x, conf.ndim_y, validation_dataset, validation_labels, gpu_enabled=False)
+	# classification
+	# 0 -> true sample
+	# 1 -> generated sample
+	class_true = aae.to_variable(np.zeros(batchsize_u, dtype=np.int32))
+	class_fake = aae.to_variable(np.ones(batchsize_u, dtype=np.int32))
 
-total_time = 0
-for epoch in xrange(1, max_epoch + 1):
+	# training
+	progress = Progress()
+	for epoch in xrange(1, max_epoch):
+		progress.start_epoch(epoch, max_epoch)
+		sum_loss_reconstruction = 0
+		sum_loss_supervised = 0
+		sum_loss_discriminator = 0
+		sum_loss_generator = 0
+		sum_loss_cluster_head = 0
 
-	sum_loss_autoencoder = 0
-	sum_loss_discriminator = 0
-	sum_loss_generator = 0
-	sum_loss_classifier = 0
-	sum_loss_cluster_head = 0
-	epoch_time = time.time()
+		for t in xrange(num_trains_per_epoch):
+			# sample from data distribution
+			images_l, label_onehot_l, label_ids_l = dataset.sample_labeled_data(training_images_l, training_labels_l, batchsize_l, config.ndim_x, config.ndim_y)
+			images_u = dataset.sample_unlabeled_data(training_images_u, batchsize_u, config.ndim_x)
 
-	for t in xrange(1, num_trains_per_epoch + 1):
-		# reconstruction phase
-		x = sample_unlabeled_data()
-		aae.update_learning_rate(conf.learning_rate_for_reconstruction_cost)
-		sum_loss_autoencoder += aae.train_autoencoder_unsupervised(x)
+			# reconstruction phase
+			q_y_x_u, z_u = aae.encode_x_yz(images_u, apply_softmax=True)
+			representation = aae.encode_yz_representation(q_y_x_u, z_u)
+			reconstruction_u = aae.decode_representation_x(representation)
+			loss_reconstruction = F.mean_squared_error(aae.to_variable(images_u), reconstruction_u)
+			aae.backprop_generator(loss_reconstruction)
+			aae.backprop_decoder(loss_reconstruction)
 
-		# regularization phase
-		## train discriminator
-		aae.update_learning_rate(conf.learning_rate_for_adversarial_cost)
-		loss_discriminator = 0
-		for k in xrange(n_steps_to_optimize_dis):
-			if k > 0:
-				x = sample_unlabeled_data()
-			z_true = sampler.gaussian(batchsize, conf.ndim_z)
-			y_true = sampler.onehot_categorical(batchsize, conf.ndim_y)
-			loss_discriminator += aae.train_discriminator_yz(x, y_true, z_true)
-		loss_discriminator /= n_steps_to_optimize_dis
-		sum_loss_discriminator += loss_discriminator
+			# adversarial phase
+			y_fake_u, z_fake_u = aae.encode_x_yz(images_u, apply_softmax=True)
+			z_true_u = sampler.gaussian(batchsize_u, config.ndim_z, mean=0, var=1)
+			y_true_u = sampler.onehot_categorical(batchsize_u, config.ndim_y)
+			discrimination_z_true = aae.discriminate_z(z_true_u, apply_softmax=False)
+			discrimination_y_true = aae.discriminate_y(y_true_u, apply_softmax=False)
+			discrimination_z_fake = aae.discriminate_z(z_fake_u, apply_softmax=False)
+			discrimination_y_fake = aae.discriminate_y(y_fake_u, apply_softmax=False)
+			loss_discriminator_z = F.softmax_cross_entropy(discrimination_z_true, class_true) + F.softmax_cross_entropy(discrimination_z_fake, class_fake)
+			loss_discriminator_y = F.softmax_cross_entropy(discrimination_y_true, class_true) + F.softmax_cross_entropy(discrimination_y_fake, class_fake)
+			loss_discriminator = loss_discriminator_z + loss_discriminator_y
+			aae.backprop_discriminator(loss_discriminator)
 
-		## train generator
-		sum_loss_generator += aae.train_generator_x_yz(x)
+			# adversarial phase
+			y_fake_u, z_fake_u = aae.encode_x_yz(images_u, apply_softmax=True)
+			discrimination_z_fake = aae.discriminate_z(z_fake_u, apply_softmax=False)
+			discrimination_y_fake = aae.discriminate_y(y_fake_u, apply_softmax=False)
+			loss_generator_z = F.softmax_cross_entropy(discrimination_z_fake, class_true)
+			loss_generator_y = F.softmax_cross_entropy(discrimination_y_fake, class_true)
+			loss_generator = loss_generator_z + loss_generator_y
+			aae.backprop_generator(loss_generator)
 
-		# semi-supervised classification phase
-		aae.update_learning_rate(conf.learning_rate_for_semi_supervised_cost)
-		x_labeled, y_onehot, y_id = sample_labeled_data()
-		sum_loss_classifier += aae.train_classifier(x_labeled, y_id)
+			# supervised phase
+			unnormalized_q_y_x_l, z_l = aae.encode_x_yz(images_l, apply_softmax=False)
+			loss_supervised = F.softmax_cross_entropy(unnormalized_q_y_x_l, aae.to_variable(label_ids_l))
+			aae.backprop_generator(loss_supervised)
 
-		# train distance between every two cluster heads
-		aae.update_learning_rate(conf.learning_rate_for_cluster_head)
-		sum_loss_cluster_head += aae.train_cluster_head()
+			# additional cost function that penalizes the euclidean distance between of every two of cluster
+			distance = aae.compute_distance_of_cluster_heads()
+			loss_cluster_head = -F.sum(distance)
+			aae.backprop_cluster_head(loss_cluster_head)
 
-		if t % 10 == 0:
-			sys.stdout.write("\rTraining in progress...({} / {})".format(t, num_trains_per_epoch))
-			sys.stdout.flush()
+			sum_loss_reconstruction += float(loss_reconstruction.data)
+			sum_loss_supervised += float(loss_supervised.data)
+			sum_loss_discriminator += float(loss_discriminator.data)
+			sum_loss_generator += float(loss_generator.data)
+			sum_loss_cluster_head += float(aae.nCr(config.ndim_y, 2) * config.cluster_head_distance_threshold + loss_cluster_head.data)
 
-	sys.stdout.write("\n")
-	epoch_time = time.time() - epoch_time
-	total_time += epoch_time
-	print "epoch:", epoch
-	print "  loss:"
-	print "    autoencoder  : {:.4f}".format(sum_loss_autoencoder / num_trains_per_epoch)
-	print "    discriminator: {:.4f}".format(loss_discriminator / num_trains_per_epoch)
-	print "    generator    : {:.4f}".format(sum_loss_generator / num_trains_per_epoch)
-	print "    classifier   : {:.4f}".format(sum_loss_classifier / num_trains_per_epoch)
-	print "    cluster      : {:.4f}".format(sum_loss_cluster_head / num_trains_per_epoch)
-	print "  time: {} min".format(int(epoch_time / 60)), "total: {} min".format(int(total_time / 60))
-	aae.save(args.model_dir)
+			if t % 10 == 0:
+				progress.show(t, num_trains_per_epoch, {})
 
-	# validation
-	x_labeled, y_onehot, y_id = sample_validation_data()
-	if conf.gpu_enabled:
-		x_labeled.to_gpu()
-	prediction = aae.sample_x_label(x_labeled, test=True, argmax=True)
-	correct = 0
-	for i in xrange(n_validation_data):
-		if prediction[i] == y_id.data[i]:
-			correct += 1
-	print "classification accuracy (validation): {}".format(correct / float(n_validation_data))
+		aae.save(args.model_dir)
 
-	# Export to csv
-	csv_epoch.append([epoch, int(total_time / 60), correct / float(n_validation_data)])
-	data = pd.DataFrame(csv_epoch)
-	data.columns = ["epoch", "min", "accuracy"]
-	data.to_csv("{}/epoch.csv".format(args.model_dir))
+		# validation phase
+		# split validation data to reduce gpu memory consumption
+		images_v, _, label_ids_v = dataset.sample_labeled_data(validation_images, validation_labels, num_validation_data, config.ndim_x, config.ndim_y)
+		images_v_segments = np.split(images_v, num_validation_data // 500)
+		label_ids_v_segments = np.split(label_ids_v, num_validation_data // 500)
+		num_correct = 0
+		for images_v, labels_v in zip(images_v_segments, label_ids_v_segments):
+			predicted_labels = aae.argmax_x_label(images_v, test=True)
+			for i, label in enumerate(predicted_labels):
+				if label == labels_v[i]:
+					num_correct += 1
+		validation_accuracy = num_correct / float(num_validation_data)
+		
+		progress.show(num_trains_per_epoch, num_trains_per_epoch, {
+			"loss_r": sum_loss_reconstruction / num_trains_per_epoch,
+			"loss_s": sum_loss_supervised / num_trains_per_epoch,
+			"loss_d": sum_loss_discriminator / num_trains_per_epoch,
+			"loss_g": sum_loss_generator / num_trains_per_epoch,
+			"loss_c": sum_loss_cluster_head / num_trains_per_epoch,
+			"accuracy": validation_accuracy
+		})
 
+		# write accuracy to csv
+		csv_results.append([epoch, validation_accuracy])
+		data = pd.DataFrame(csv_results)
+		data.columns = ["epoch", "accuracy"]
+		data.to_csv("{}/result.csv".format(args.model_dir))
+
+if __name__ == "__main__":
+	main()
