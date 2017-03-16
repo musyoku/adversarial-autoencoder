@@ -19,7 +19,7 @@ def main():
 	# _l -> labeled
 	# _u -> unlabeled
 	max_epoch = 1000
-	num_trains_per_epoch = 500
+	num_trains_per_epoch = 5000
 	batchsize = 100
 	alpha = 1
 
