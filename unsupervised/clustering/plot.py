@@ -25,6 +25,7 @@ pylab.gray()
 head_y = np.identity(config.ndim_y, dtype=np.float32)
 zero_z = np.zeros((config.ndim_y, config.ndim_z), dtype=np.float32)
 head_x = aae.to_numpy(aae.decode_yz_x(head_y, zero_z, test=True))
+head_x = (head_x + 1.0) / 2.0
 for n in xrange(num_clusters):
 	pylab.subplot(num_clusters, num_plots_per_cluster + 2, n * (num_plots_per_cluster + 2) + 1)
 	pylab.imshow(head_x[n].reshape((image_width, image_height)), interpolation="none")
