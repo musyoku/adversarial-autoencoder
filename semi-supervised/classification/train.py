@@ -90,8 +90,8 @@ def main():
 			aae.backprop_generator(loss_generator)
 
 			# supervised phase
-			unnormalized_q_y_x_l, z_l = aae.encode_x_yz(images_l, apply_softmax=False)
-			loss_supervised = F.softmax_cross_entropy(unnormalized_q_y_x_l, aae.to_variable(label_ids_l))
+			log_qy_x_l, z_l = aae.encode_x_yz(images_l, apply_softmax=False)
+			loss_supervised = F.softmax_cross_entropy(log_qy_x_l, aae.to_variable(label_ids_l))
 			aae.backprop_generator(loss_supervised)
 
 			sum_loss_reconstruction += float(loss_reconstruction.data)

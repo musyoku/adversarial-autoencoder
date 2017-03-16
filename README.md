@@ -1,18 +1,14 @@
 ## Adversarial AutoEncoder
 
-code for the [paper](https://arxiv.org/abs/1511.05644)
+- Code for the [paper](https://arxiv.org/abs/1511.05644)
 
 ### Requirements
 
-- Chainer 1.18
+- Chainer 1.21
 - pylab
 - PIL
 - gzip
 - six
-
-Contains the following repository:
-
-- [chainer-sequential](https://github.com/musyoku/chainer-sequential)
 
 ## Incorporating Label Information in the Adversarial Regularization
 
@@ -40,7 +36,7 @@ run `semi-supervised/classification/train.py`
 | unlabeled | 49900 |
 | validation | 10000 |
 
-#### Validation accuracy for each epoch
+#### Validation accuracy at each epoch
 
 ![classification](https://github.com/musyoku/musyoku.github.io/blob/master/images/post/2016-02-22/classification.png?raw=true)
 
@@ -48,7 +44,7 @@ run `semi-supervised/classification/train.py`
 
 ![analogy_semi](https://github.com/musyoku/musyoku.github.io/blob/master/images/post/2016-02-22/analogy_semi.png?raw=true)
 
-## Unsupervised Clustering
+## Unsupervised clustering
 
 run `unsupervised/clustering/train.py`
 
@@ -60,7 +56,7 @@ run `unsupervised/clustering/train.py`
 
 ![clusters_32](https://github.com/musyoku/musyoku.github.io/blob/master/images/post/2016-02-22/clusters_32.png?raw=true)
 
-## Dimensionality Reduction
+## Dimensionality reduction
 
 run `unsupervised/dim_reduction/train.py`
 

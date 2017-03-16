@@ -20,7 +20,7 @@ def tile_images(image_batch, image_width=28, image_height=28, image_channel=1, d
 		pylab.axis("off")
 	pylab.savefig("{}/{}.png".format(dir, filename))
 
-def plot_z(z_batch, dir=None, filename="z"):
+def scatter_z(z_batch, dir=None, filename="z"):
 	if dir is None:
 		raise Exception()
 	try:
@@ -36,7 +36,7 @@ def plot_z(z_batch, dir=None, filename="z"):
 	pylab.ylabel("z2")
 	pylab.savefig("{}/{}.png".format(dir, filename))
 
-def plot_labeled_z(z_batch, label_batch, dir=None, filename="labeled_z"):
+def scatter_labeled_z(z_batch, label_batch, dir=None, filename="labeled_z"):
 	fig = pylab.gcf()
 	fig.set_size_inches(20.0, 16.0)
 	pylab.clf()

@@ -19,7 +19,7 @@ def main():
 	# _l -> labeled
 	# _u -> unlabeled
 	max_epoch = 1000
-	num_trains_per_epoch = 5000
+	num_trains_per_epoch = 500
 	batchsize_l = 100
 	batchsize_u = 100
 	alpha = 1
@@ -69,19 +69,19 @@ def main():
 			label_onehot_u = np.repeat(onehot, batchsize_u, axis=0)
 			z_true_l = sampler.supervised_gaussian_mixture(batchsize_l, config.ndim_z, label_ids_l, num_types_of_label - 1)
 			z_true_u = sampler.gaussian_mixture(batchsize_u, config.ndim_z, num_types_of_label - 1)
-			discrimination_z_true_l = aae.discriminate_z(label_onehot_l, z_true_l, apply_softmax=False)
-			discrimination_z_true_u = aae.discriminate_z(label_onehot_u, z_true_u, apply_softmax=False)
-			discrimination_z_fake_l = aae.discriminate_z(label_onehot_l, z_fake_l, apply_softmax=False)
-			discrimination_z_fake_u = aae.discriminate_z(label_onehot_u, z_fake_u, apply_softmax=False)
-			loss_discriminator = F.softmax_cross_entropy(discrimination_z_true_l, class_true) + F.softmax_cross_entropy(discrimination_z_true_u, class_true) + F.softmax_cross_entropy(discrimination_z_fake_l, class_fake) + F.softmax_cross_entropy(discrimination_z_fake_u, class_fake)
+			dz_true_l = aae.discriminate_z(label_onehot_l, z_true_l, apply_softmax=False)
+			dz_true_u = aae.discriminate_z(label_onehot_u, z_true_u, apply_softmax=False)
+			dz_fake_l = aae.discriminate_z(label_onehot_l, z_fake_l, apply_softmax=False)
+			dz_fake_u = aae.discriminate_z(label_onehot_u, z_fake_u, apply_softmax=False)
+			loss_discriminator = F.softmax_cross_entropy(dz_true_l, class_true) + F.softmax_cross_entropy(dz_true_u, class_true) + F.softmax_cross_entropy(dz_fake_l, class_fake) + F.softmax_cross_entropy(dz_fake_u, class_fake)
 			aae.backprop_discriminator(loss_discriminator)
 
 			# adversarial phase
 			z_fake_u = aae.encode_x_z(images_u)
 			z_fake_l = aae.encode_x_z(images_l)
-			discrimination_z_fake_l = aae.discriminate_z(label_onehot_l, z_fake_l, apply_softmax=False)
-			discrimination_z_fake_u = aae.discriminate_z(label_onehot_u, z_fake_u, apply_softmax=False)
-			loss_generator = F.softmax_cross_entropy(discrimination_z_fake_l, class_true) + F.softmax_cross_entropy(discrimination_z_fake_u, class_true)
+			dz_fake_l = aae.discriminate_z(label_onehot_l, z_fake_l, apply_softmax=False)
+			dz_fake_u = aae.discriminate_z(label_onehot_u, z_fake_u, apply_softmax=False)
+			loss_generator = F.softmax_cross_entropy(dz_fake_l, class_true) + F.softmax_cross_entropy(dz_fake_u, class_true)
 			aae.backprop_generator(loss_generator)
 
 			sum_loss_reconstruction += float(loss_reconstruction.data)

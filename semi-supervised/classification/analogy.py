@@ -21,7 +21,7 @@ def main():
 	pylab.gray()
 
 	# generate style vector z
-	x = dataset.sample_unlabeled_data(images, num_analogies, config.ndim_x, binarize=False)
+	x = dataset.sample_unlabeled_data(images, num_analogies)
 	_, z = aae.encode_x_yz(x, apply_softmax=True, test=True)
 	z = aae.to_numpy(z)
 

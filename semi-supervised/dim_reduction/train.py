@@ -20,7 +20,7 @@ def main():
 	# _l -> labeled
 	# _u -> unlabeled
 	max_epoch = 1000
-	num_trains_per_epoch = 5000
+	num_trains_per_epoch = 500
 	batchsize_l = 100
 	batchsize_u = 100
 	alpha = 1
@@ -61,8 +61,8 @@ def main():
 			images_u = dataset.sample_unlabeled_data(training_images_u, batchsize_u)
 
 			# reconstruction phase
-			q_y_x_u, z_u = aae.encode_x_yz(images_u, apply_softmax=True)
-			representation = aae.encode_yz_representation(q_y_x_u, z_u)
+			qy_x_u, z_u = aae.encode_x_yz(images_u, apply_softmax=True)
+			representation = aae.encode_yz_representation(qy_x_u, z_u)
 			reconstruction_u = aae.decode_representation_x(representation)
 			loss_reconstruction = F.mean_squared_error(aae.to_variable(images_u), reconstruction_u)
 			aae.backprop_generator(loss_reconstruction)
@@ -72,27 +72,27 @@ def main():
 			y_fake_u, z_fake_u = aae.encode_x_yz(images_u, apply_softmax=True)
 			z_true_u = sampler.gaussian(batchsize_u, config.ndim_z, mean=0, var=1)
 			y_true_u = sampler.onehot_categorical(batchsize_u, config.ndim_y)
-			discrimination_z_true = aae.discriminate_z(z_true_u, apply_softmax=False)
-			discrimination_y_true = aae.discriminate_y(y_true_u, apply_softmax=False)
-			discrimination_z_fake = aae.discriminate_z(z_fake_u, apply_softmax=False)
-			discrimination_y_fake = aae.discriminate_y(y_fake_u, apply_softmax=False)
-			loss_discriminator_z = F.softmax_cross_entropy(discrimination_z_true, class_true) + F.softmax_cross_entropy(discrimination_z_fake, class_fake)
-			loss_discriminator_y = F.softmax_cross_entropy(discrimination_y_true, class_true) + F.softmax_cross_entropy(discrimination_y_fake, class_fake)
+			dz_true = aae.discriminate_z(z_true_u, apply_softmax=False)
+			dy_true = aae.discriminate_y(y_true_u, apply_softmax=False)
+			dz_fake = aae.discriminate_z(z_fake_u, apply_softmax=False)
+			dy_fake = aae.discriminate_y(y_fake_u, apply_softmax=False)
+			loss_discriminator_z = F.softmax_cross_entropy(dz_true, class_true) + F.softmax_cross_entropy(dz_fake, class_fake)
+			loss_discriminator_y = F.softmax_cross_entropy(dy_true, class_true) + F.softmax_cross_entropy(dy_fake, class_fake)
 			loss_discriminator = loss_discriminator_z + loss_discriminator_y
 			aae.backprop_discriminator(loss_discriminator)
 
 			# adversarial phase
 			y_fake_u, z_fake_u = aae.encode_x_yz(images_u, apply_softmax=True)
-			discrimination_z_fake = aae.discriminate_z(z_fake_u, apply_softmax=False)
-			discrimination_y_fake = aae.discriminate_y(y_fake_u, apply_softmax=False)
-			loss_generator_z = F.softmax_cross_entropy(discrimination_z_fake, class_true)
-			loss_generator_y = F.softmax_cross_entropy(discrimination_y_fake, class_true)
+			dz_fake = aae.discriminate_z(z_fake_u, apply_softmax=False)
+			dy_fake = aae.discriminate_y(y_fake_u, apply_softmax=False)
+			loss_generator_z = F.softmax_cross_entropy(dz_fake, class_true)
+			loss_generator_y = F.softmax_cross_entropy(dy_fake, class_true)
 			loss_generator = loss_generator_z + loss_generator_y
 			aae.backprop_generator(loss_generator)
 
 			# supervised phase
-			unnormalized_q_y_x_l, z_l = aae.encode_x_yz(images_l, apply_softmax=False)
-			loss_supervised = F.softmax_cross_entropy(unnormalized_q_y_x_l, aae.to_variable(label_ids_l))
+			log_qy_x_l, z_l = aae.encode_x_yz(images_l, apply_softmax=False)
+			loss_supervised = F.softmax_cross_entropy(log_qy_x_l, aae.to_variable(label_ids_l))
 			aae.backprop_generator(loss_supervised)
 
 			# additional cost function that penalizes the euclidean distance between of every two of cluster
@@ -112,17 +112,14 @@ def main():
 		aae.save(args.model_dir)
 
 		# validation phase
-		# split validation data to reduce gpu memory consumption
-		images_v, _, label_ids_v = dataset.sample_labeled_data(validation_images, validation_labels, num_validation_data, config.ndim_x, config.ndim_y)
-		images_v_segments = np.split(images_v, num_validation_data // 500)
-		label_ids_v_segments = np.split(label_ids_v, num_validation_data // 500)
-		num_correct = 0
-		for images_v, labels_v in zip(images_v_segments, label_ids_v_segments):
-			predicted_labels = aae.argmax_x_label(images_v, test=True)
-			for i, label in enumerate(predicted_labels):
-				if label == labels_v[i]:
-					num_correct += 1
-		validation_accuracy = num_correct / float(num_validation_data)
+		images_v_segments = np.split(validation_images, num_validation_data // 1000)
+		labels_v_segments = np.split(validation_labels, num_validation_data // 1000)
+		sum_accuracy = 0
+		for images_v, labels_v in zip(images_v_segments, labels_v_segments):
+			qy = aae.encode_x_yz(images_v, apply_softmax=True, test=True)[0]
+			accuracy = F.accuracy(qy, aae.to_variable(labels_v))
+			sum_accuracy += float(accuracy.data)
+		validation_accuracy = sum_accuracy / len(images_v_segments)
 		
 		progress.show(num_trains_per_epoch, num_trains_per_epoch, {
 			"loss_r": sum_loss_reconstruction / num_trains_per_epoch,

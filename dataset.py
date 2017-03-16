@@ -48,7 +48,7 @@ def create_semisupervised(images, labels, num_validation_data=10000, num_labeled
 				validation_x.append(images[index])
 				validation_labels.append(labels[index])
 
-	return training_labeled_x, training_labels, training_unlabeled_x, validation_x, validation_labels
+	return np.asanyarray(training_labeled_x), np.asanyarray(training_labels), np.asanyarray(training_unlabeled_x), np.asanyarray(validation_x), np.asanyarray(validation_labels)
 	
 def sample_labeled_data(images, labels, batchsize, ndim_y=10):
 	ndim_x = 28 ** 2
