@@ -3,7 +3,6 @@ import math
 import numpy as np
 import chainer, os, math, random, copy
 from chainer import cuda, Variable, serializers
-import params
 import sequential
 
 class Object(object):
@@ -15,14 +14,40 @@ def to_object(dict):
 		setattr(obj, key, value)
 	return obj
 
+class Params():
+	def __init__(self, dict=None):
+		if dict:
+			self.from_dict(dict)
+
+	def from_dict(self, dict):
+		for attr, value in dict.iteritems():
+			if hasattr(self, attr):
+				setattr(self, attr, value)
+
+	def to_dict(self):
+		dict = {}
+		for attr, value in self.__dict__.iteritems():
+			if hasattr(value, "to_dict"):
+				dict[attr] = value.to_dict()
+			else:
+				dict[attr] = value
+		return dict
+
+	def dump(self):
+		for attr, value in self.__dict__.iteritems():
+			print "	{}: {}".format(attr, value)
+
 class AAE(object):
 	def __init__(self, params):
 		super(AAE, self).__init__()
 		self.params = copy.deepcopy(params)
-		self.config = to_object(params["config"])
-		self.chain_discriminator = sequential.chain.Chain()
-		self.chain_decoder = sequential.chain.Chain()
-		self.chain_generator = sequential.chain.Chain()
+
+		config = to_object(params["config"])
+		self.chain_discriminator = sequential.chain.Chain(weight_initializer=config.weight_initializer, weight_std=config.weight_std)
+		self.chain_decoder = sequential.chain.Chain(weight_initializer=config.weight_initializer, weight_std=config.weight_std)
+		self.chain_generator = sequential.chain.Chain(weight_initializer=config.weight_initializer, weight_std=config.weight_std)
+		self.config = config
+		
 		self._gpu = False
 
 	def load(self, dir=None):

@@ -19,7 +19,7 @@ def main():
 
 	# settings
 	max_epoch = 1000
-	num_trains_per_epoch = 5000
+	num_trains_per_epoch = 500
 	batchsize = 100
 	alpha = 1
 
@@ -44,7 +44,7 @@ def main():
 
 		for t in xrange(num_trains_per_epoch):
 			# sample from data distribution
-			images_u = dataset.sample_unlabeled_data(images, batchsize, config.ndim_x)
+			images_u = dataset.sample_unlabeled_data(images, batchsize)
 
 			# reconstruction phase
 			q_y_x_u, z_u = aae.encode_x_yz(images_u, apply_softmax=True)

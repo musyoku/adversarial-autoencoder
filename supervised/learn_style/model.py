@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "../../")))
 from aae_supervised import AAE, Config
 from sequential import Sequential
 from sequential.layers import Linear, Merge, BatchNormalization, Gaussian
-from sequential.functions import Activation, dropout, gaussian_noise, tanh, sigmoid
+from sequential.functions import Activation, dropout, gaussian_noise, tanh
 
 try:
 	os.mkdir(args.model_dir)
@@ -29,7 +29,7 @@ else:
 	config.ndim_y = 10
 	config.ndim_z = 15
 	config.distribution_z = "deterministic"	# deterministic or gaussian
-	config.weight_init_std = 0.001
+	config.weight_std = 0.001
 	config.weight_initializer = "Normal"
 	config.nonlinearity = "relu"
 	config.optimizer = "Adam"
@@ -38,7 +38,7 @@ else:
 	config.gradient_clipping = 5
 	config.weight_decay = 0
 
-	decoder = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
+	decoder = Sequential()
 	decoder.add(Merge(num_inputs=2, out_size=1000, nobias=True))
 	decoder.add(Activation(config.nonlinearity))
 	decoder.add(Linear(None, 1000))
@@ -46,9 +46,9 @@ else:
 	decoder.add(Linear(None, 1000))
 	decoder.add(Activation(config.nonlinearity))
 	decoder.add(Linear(None, config.ndim_x))
-	decoder.add(sigmoid())
+	decoder.add(tanh())
 
-	discriminator = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
+	discriminator = Sequential()
 	discriminator.add(gaussian_noise(std=0.3))
 	discriminator.add(Linear(config.ndim_z, 1000))
 	discriminator.add(Activation(config.nonlinearity))
@@ -57,7 +57,7 @@ else:
 	discriminator.add(Linear(None, 2))
 
 	# z = generator(x)
-	generator = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
+	generator = Sequential()
 	generator.add(Linear(config.ndim_x, 1000))
 	generator.add(Activation(config.nonlinearity))
 	generator.add(Linear(None, 1000))

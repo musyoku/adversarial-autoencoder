@@ -13,13 +13,9 @@ except:
 def main():
 	# load MNIST images
 	images, labels = dataset.load_test_images()
-
-	# config
-	config = aae.config
 	num_scatter = len(images)
 
-	x, _, labels = dataset.sample_labeled_data(images, labels, num_scatter, config.ndim_x, config.ndim_y)
-	y_distribution, z = aae.encode_x_yz(x, apply_softmax=False, test=True)
+	y_distribution, z = aae.encode_x_yz(images, apply_softmax=False, test=True)
 	y = aae.argmax_onehot_from_unnormalized_distribution(y_distribution)
 	representation = aae.to_numpy(aae.encode_yz_representation(y, z, test=True))
 

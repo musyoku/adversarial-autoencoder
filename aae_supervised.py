@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import aae
-import params
 import sequential
 from chainer import functions as F
+from aae import Params
 
-class Config(params.Params):
+class Config(Params):
 	def __init__(self):
 		self.ndim_x = 28 * 28
 		self.ndim_y = 10
 		self.ndim_z = 10
 		self.distribution_z = "deterministic"	# deterministic or gaussian
-		self.weight_init_std = 0.01
+		self.weight_std = 0.01
 		self.weight_initializer = "Normal"	# Normal, GlorotNormal or HeNormal
 		self.nonlinearity = "relu"
 		self.optimizer = "Adam"

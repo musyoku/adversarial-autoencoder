@@ -44,7 +44,7 @@ def main():
 
 		for t in xrange(num_trains_per_epoch):
 			# sample from data distribution
-			images_l, label_onehot_l, label_ids_l = dataset.sample_labeled_data(images, labels, batchsize, config.ndim_x, config.ndim_y)
+			images_l, label_onehot_l, label_ids_l = dataset.sample_labeled_data(images, labels, batchsize)
 
 			# reconstruction phase
 			z_l = aae.encode_x_z(images_l)

@@ -9,13 +9,8 @@ def load_train_images():
 def load_test_images():
 	return mnist_tools.load_test_images()
 
-def binarize_data(x):
-	threshold = np.random.uniform(size=x.shape)
-	return np.where(threshold < x, 1.0, 0.0).astype(np.float32)
-
-def create_semisupervised(images, labels, num_validation_data=10000, num_labeled_data=100, num_types_of_label=10, seed=0):
-	if len(images) < num_validation_data + num_labeled_data:
-		raise Exception("len(images) < num_validation_data + num_labeled_data")
+def create_semisupervised(images, labels, num_validation_data=10000, num_labeled_data=100, num_types_of_label=10):
+	assert len(images) >= num_validation_data + num_labeled_data
 	training_labeled_x = []
 	training_unlabeled_x = []
 	validation_x = []
@@ -25,7 +20,6 @@ def create_semisupervised(images, labels, num_validation_data=10000, num_labeled
 	num_data_per_label = int(num_labeled_data / num_types_of_label)
 	num_unlabeled_data = len(images) - num_validation_data - num_labeled_data
 
-	np.random.seed(seed)
 	indices = np.arange(len(images))
 	np.random.shuffle(indices)
 
@@ -54,33 +48,27 @@ def create_semisupervised(images, labels, num_validation_data=10000, num_labeled
 				validation_x.append(images[index])
 				validation_labels.append(labels[index])
 
-	# reset seed
-	np.random.seed()
-
 	return training_labeled_x, training_labels, training_unlabeled_x, validation_x, validation_labels
 	
-def sample_labeled_data(images, labels, batchsize, ndim_x, ndim_y, binarize=True):
+def sample_labeled_data(images, labels, batchsize):
+	ndim_x = 28 ** 2
+	ndim_y = 10
 	image_batch = np.zeros((batchsize, ndim_x), dtype=np.float32)
 	label_onehot_batch = np.zeros((batchsize, ndim_y), dtype=np.float32)
 	label_id_batch = np.zeros((batchsize,), dtype=np.int32)
 	indices = np.random.choice(np.arange(len(images), dtype=np.int32), size=batchsize, replace=False)
 	for j in range(batchsize):
 		data_index = indices[j]
-		img = images[data_index].astype(np.float32) / 255.0
-		image_batch[j] = img.reshape((ndim_x,))
+		image_batch[j] = images[data_index].astype(np.float32)
 		label_onehot_batch[j, labels[data_index]] = 1
 		label_id_batch[j] = labels[data_index]
-	if binarize:
-		image_batch = binarize_data(image_batch)
 	return image_batch, label_onehot_batch, label_id_batch
 
-def sample_unlabeled_data(images, batchsize, ndim_x, binarize=True):
+def sample_unlabeled_data(images, batchsize):
+	ndim_x = 28 ** 2
 	image_batch = np.zeros((batchsize, ndim_x), dtype=np.float32)
 	indices = np.random.choice(np.arange(len(images), dtype=np.int32), size=batchsize, replace=False)
 	for j in range(batchsize):
 		data_index = indices[j]
-		img = images[data_index].astype(np.float32) / 255.0
-		image_batch[j] = img.reshape((ndim_x,))
-	if binarize:
-		image_batch = binarize_data(image_batch)
+		image_batch[j] = images[data_index].astype(np.float32)
 	return image_batch

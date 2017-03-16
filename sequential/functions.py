@@ -1,5 +1,5 @@
 import math
-from chainer import cuda, Variable
+from chainer import cuda, Variable, function
 from chainer import functions as F
 
 class Function(object):
@@ -176,17 +176,6 @@ class average_pooling_2d(Function):
 	def __call__(self, x):
 		return F.average_pooling_2d(x, self.ksize, self.stride, self.pad, self.use_cudnn)
 
-class average_pooling_2d(Function):
-	def __init__(self, ksize, stride=None, pad=0, use_cudnn=True):
-		self._function = "average_pooling_2d"
-		self.ksize = ksize
-		self.stride = stride
-		self.pad = pad
-		self.use_cudnn = use_cudnn
-
-	def __call__(self, x):
-		return F.average_pooling_2d(x, self.ksize, self.stride, self.pad, self.use_cudnn)
-
 class max_pooling_2d(Function):
 	def __init__(self, ksize, stride=None, pad=0, cover_all=True, use_cudnn=True):
 		self._function = "max_pooling_2d"
@@ -248,3 +237,133 @@ class reshape_1d(Function):
 	def __call__(self, x):
 		batchsize = x.data.shape[0]
 		return F.reshape(x, (batchsize, -1))
+		
+# class BatchRenormalizationFunction(function.Function):
+# 	def forward(self, inputs):
+# 		xp = cuda.get_array_module(*inputs)
+# 		x, gamma, beta = inputs[:3]
+# 		if self.train:
+# 			if self.running_mean is None:
+# 				self.running_mean = xp.zeros_like(gamma)
+# 				self.running_var = xp.zeros_like(gamma)
+# 			else:
+# 				self.running_mean = xp.array(self.running_mean)
+# 				self.running_var = xp.array(self.running_var)
+# 		elif len(inputs) == 5:
+# 			self.fixed_mean = inputs[3]
+# 			self.fixed_var = inputs[4]
+
+# 		# TODO(bkvogel): Check for float16 support again in next cuDNN version.
+# 		if x[0].dtype == numpy.float16:
+# 			# cuDNN v5 batch normalization does not seem to support float16.
+# 			self.use_cudnn = False
+
+# 		head_ndim = gamma.ndim + 1
+# 		expander = (None, Ellipsis) + (None,) * (x.ndim - head_ndim)
+# 		gamma = gamma[expander]
+# 		beta = beta[expander]
+
+# 		# cuDNN only supports these tensor dimensions because they are
+# 		# the most commonly used. If there is a need to support other
+# 		# dimensions with cuDNN, we could consider reshaping the input
+# 		# into a 2-dim array with channels as second dim and m=<product
+# 		# of all dimensions except the 2nd dimension> as the first
+# 		# dimension.
+# 		self.cudnn_dim_ok = x.ndim == 2 or x.ndim == 4
+
+# 		cudnn_updated_running_stats = False
+# 		if xp is not numpy and cuda.cudnn_enabled and self.use_cudnn and \
+# 				self.cudnn_dim_ok and _cudnn_version >= 5000:
+# 			if x.ndim == 4:
+# 				# for convolutional layer
+# 				self.mode = libcudnn.CUDNN_BATCHNORM_SPATIAL
+# 			else:
+# 				# for linear layer
+# 				self.mode = libcudnn.CUDNN_BATCHNORM_PER_ACTIVATION
+
+# 			x = cuda.cupy.ascontiguousarray(x)
+# 			gamma = cuda.cupy.ascontiguousarray(gamma)
+# 			beta = cuda.cupy.ascontiguousarray(beta)
+# 			dtype = x.dtype
+# 			handle = cudnn.get_handle()
+# 			x_desc = cudnn.create_tensor_descriptor(_as4darray(x))
+# 			derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
+# 			libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
+# 											  x_desc.value, self.mode)
+# 			one = numpy.array(1, dtype=dtype).ctypes
+# 			zero = numpy.array(0, dtype=dtype).ctypes
+# 			y = cuda.cupy.empty_like(x)
+# 			# Factor used in the moving average
+# 			factor = 1 - self.decay
+
+# 			if self.train:
+# 				if self.mean_cache is None:
+# 					# Output cache to speed up backward pass.
+# 					self.mean_cache = xp.empty_like(gamma)
+# 					# Output cache to speed up backward pass.
+# 					self.var_cache = xp.empty_like(gamma)
+# 				# Note: cuDNN computes the mini-batch mean and variance
+# 				# internally. We can simply (optionally) pass
+# 				# it the running-average mean and variance arrays.
+# 				libcudnn.batchNormalizationForwardTraining(
+# 					handle, self.mode, one.data, zero.data,
+# 					x_desc.value, x.data.ptr, x_desc.value,
+# 					y.data.ptr, derivedBnDesc.value, gamma.data.ptr,
+# 					beta.data.ptr, factor, self.running_mean.data.ptr,
+# 					self.running_var.data.ptr, self.eps,
+# 					self.mean_cache.data.ptr, self.var_cache.data.ptr)
+
+# 				print self.mean_cache
+# 				print self.var_cache
+# 				cudnn_updated_running_stats = True
+# 			else:
+# 				libcudnn.batchNormalizationForwardInference(
+# 					handle, self.mode, one.data, zero.data,
+# 					x_desc.value, x.data.ptr, x_desc.value, y.data.ptr,
+# 					derivedBnDesc.value, gamma.data.ptr, beta.data.ptr,
+# 					self.fixed_mean.data.ptr, self.fixed_var.data.ptr,
+# 					self.eps)
+# 		else:
+# 			if self.train:
+# 				axis = (0,) + tuple(range(head_ndim, x.ndim))
+# 				mean = x.mean(axis=axis)
+# 				var = x.var(axis=axis)
+# 				print mean
+# 				print var
+# 				var += self.eps
+# 			else:
+# 				mean = self.fixed_mean
+# 				var = self.fixed_var + self.eps
+# 			self.std = xp.sqrt(var, dtype=var.dtype)
+# 			if xp is numpy:
+# 				self.x_hat = _xhat(x, mean, self.std, expander)
+# 				y = gamma * self.x_hat
+# 				y += beta
+# 			else:
+# 				self.x_hat, y = cuda.elementwise(
+# 					'T x, T mean, T std, T gamma, T beta', 'T x_hat, T y',
+# 					'''
+# 					x_hat = (x - mean) / std;
+# 					y = gamma * x_hat + beta;
+# 					''',
+# 					'bn_fwd')(x, mean[expander], self.std[expander], gamma,
+# 							  beta)
+
+# 		if self.train and (not cudnn_updated_running_stats):
+# 			# Note: If in training mode, the cuDNN forward training function
+# 			# will do this for us, so
+# 			# only run following code if cuDNN was not used.
+# 			# Update running statistics:
+# 			m = x.size // gamma.size
+# 			adjust = m / max(m - 1., 1.)  # unbiased estimation
+# 			self.running_mean *= self.decay
+# 			temp_ar = xp.array(mean)
+# 			temp_ar *= (1 - self.decay)
+# 			self.running_mean += temp_ar
+# 			del temp_ar
+# 			self.running_var *= self.decay
+# 			temp_ar = xp.array(var)
+# 			temp_ar *= (1 - self.decay) * adjust
+# 			self.running_var += temp_ar
+# 			del temp_ar
+# 		return y,

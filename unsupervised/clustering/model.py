@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "../../")))
 from aae_semi_supervised import AAE, Config
 from sequential import Sequential
 from sequential.layers import Linear, Merge, BatchNormalization, Gaussian
-from sequential.functions import Activation, dropout, gaussian_noise, tanh, sigmoid
+from sequential.functions import Activation, dropout, gaussian_noise, tanh
 
 try:
 	os.mkdir(args.model_dir)
@@ -29,7 +29,7 @@ else:
 	config.ndim_y = 16
 	config.ndim_z = 10
 	config.distribution_z = "deterministic"	# deterministic or gaussian
-	config.weight_init_std = 0.001
+	config.weight_std = 0.001
 	config.weight_initializer = "Normal"
 	config.nonlinearity = "relu"
 	config.optimizer = "Adam"
@@ -39,7 +39,7 @@ else:
 	config.weight_decay = 0
 
 	# x = decoder(y, z)
-	decoder = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
+	decoder = Sequential()
 	decoder.add(Merge(num_inputs=2, out_size=1000, nobias=True))
 	decoder.add(Activation(config.nonlinearity))
 	decoder.add(Linear(None, 1000))
@@ -47,9 +47,9 @@ else:
 	decoder.add(Linear(None, 1000))
 	decoder.add(Activation(config.nonlinearity))
 	decoder.add(Linear(None, config.ndim_x))
-	decoder.add(sigmoid())
+	decoder.add(tanh())
 
-	discriminator_z = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
+	discriminator_z = Sequential()
 	discriminator_z.add(gaussian_noise(std=0.3))
 	discriminator_z.add(Linear(config.ndim_z, 1000))
 	discriminator_z.add(Activation(config.nonlinearity))
@@ -57,7 +57,7 @@ else:
 	discriminator_z.add(Activation(config.nonlinearity))
 	discriminator_z.add(Linear(None, 2))
 
-	discriminator_y = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
+	discriminator_y = Sequential()
 	discriminator_y.add(gaussian_noise(std=0.3))
 	discriminator_y.add(Linear(config.ndim_y, 1000))
 	discriminator_y.add(Activation(config.nonlinearity))
@@ -66,13 +66,13 @@ else:
 	discriminator_y.add(Linear(None, 2))
 
 	# z, y_softmax = generator(x)
-	generator_shared = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
+	generator_shared = Sequential()
 	generator_shared.add(Linear(config.ndim_x, 1000))
 	generator_shared.add(Activation(config.nonlinearity))
 	generator_shared.add(Linear(None, 1000))
 	generator_shared.add(Activation(config.nonlinearity))
 
-	generator_z = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
+	generator_z = Sequential()
 	if config.distribution_z == "deterministic":
 		generator_z.add(Linear(None, config.ndim_z))
 	elif config.distribution_z == "gaussian":
@@ -80,7 +80,7 @@ else:
 	else:
 		raise Exception()
 
-	generator_y = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
+	generator_y = Sequential()
 	generator_y.add(Linear(None, config.ndim_y))
 
 

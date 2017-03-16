@@ -6,32 +6,8 @@ from chainer import cuda
 from chainer import optimizer
 import sequential
 import links
-
-def sum_sqnorm(arr):
-	sq_sum = collections.defaultdict(float)
-	for x in arr:
-		with cuda.get_device(x) as dev:
-			x = x.ravel()
-			s = x.dot(x)
-			sq_sum[int(dev)] += s
-	return sum([float(i) for i in six.itervalues(sq_sum)])
-	
-class GradientClipping(object):
-	name = "GradientClipping"
-
-	def __init__(self, threshold):
-		self.threshold = threshold
-
-	def __call__(self, opt):
-		norm = np.sqrt(sum_sqnorm([p.grad for p in opt.target.params()]))
-		if norm < self.threshold:
-			return
-		rate = self.threshold / norm
-		if rate < 1:
-			for param in opt.target.params():
-				grad = param.grad
-				with cuda.get_device(grad):
-					grad *= rate
+import hooks
+import util
 
 class Eve(optimizer.GradientMethod):
 	def __init__(self, alpha=0.001, beta1=0.9, beta2=0.999, beta3=0.999, eps=1e-8, lower_threshold=0.1, upper_threshold=10):
@@ -104,44 +80,49 @@ class Eve(optimizer.GradientMethod):
 		self.loss = float(loss_var.data)
 		super(Eve, self).update(lossfun=lambda: loss_var)
 
-def get_optimizer(name, lr, momentum=0.9):
-	if name.lower() == "adam":
-		return optimizers.Adam(alpha=lr, beta1=momentum)
-	if name.lower() == "eve":
-		return Eve(alpha=lr, beta1=momentum)
-	if name.lower() == "adagrad":
-		return optimizers.AdaGrad(lr=lr)
-	if name.lower() == "adadelta":
-		return optimizers.AdaDelta(rho=momentum)
-	if name.lower() == "nesterov" or name.lower() == "nesterovag":
-		return optimizers.NesterovAG(lr=lr, momentum=momentum)
-	if name.lower() == "rmsprop":
-		return optimizers.RMSprop(lr=lr, alpha=momentum)
-	if name.lower() == "momentumsgd":
-		return optimizers.MomentumSGD(lr=lr, mommentum=mommentum)
-	if name.lower() == "sgd":
-		return optimizers.SGD(lr=lr)
-
 class Chain(chainer.Chain):
+	def __init__(self, weight_initializer="Normal", weight_std=1):
+		super(Chain, self).__init__()
+		self.global_weight_initializer = weight_initializer	# Normal / GlorotNormal / HeNormal
+		self.global_weight_std = weight_std
 
-	def add_sequence(self, sequence):
-		self.add_sequence_with_name(sequence)
-		self.sequence = sequence
+	def build_sequence(self, sequence):
+		if sequence.built == False:
+			if sequence.weight_initializer is None:
+				sequence.weight_initializer = self.global_weight_initializer
+			if sequence.weight_std is None:
+				sequence.weight_std = self.global_weight_std
+			sequence.build()
+
+	def add_sequence(self, sequence, name=None):
+		assert isinstance(sequence, sequential.Sequential)
+		self.build_sequence(sequence)
+		self.add_sequence_with_name(sequence, name)
+		if name is None:
+			assert hasattr(self, "sequence") == False
+			self.sequence = sequence
+		else:
+			assert hasattr(self, name) == False
+			setattr(self, name, sequence)
 
 	def add_sequence_with_name(self, sequence, name="link"):
-		if isinstance(sequence, sequential.Sequential) == False:
-			raise Exception()
+		assert isinstance(sequence, sequential.Sequential)
+		self.build_sequence(sequence)
 		for i, link in enumerate(sequence.links):
 			if isinstance(link, chainer.link.Link):
 				self.add_link("{}_{}".format(name, i), link)
 			elif isinstance(link, links.Gaussian):
 				self.add_link("{}_{}_ln_var".format(name, i), link.layer_ln_var)
 				self.add_link("{}_{}_mean".format(name, i), link.layer_mean)
+			elif isinstance(link, links.PixelShuffler2D):
+				self.add_link("{}_{}".format(name, i), link.conv)
 			elif isinstance(link, links.MinibatchDiscrimination):
 				self.add_link("{}_{}".format(name, i), link.T)
 			elif isinstance(link, links.Merge):
 				for l, layer in enumerate(link.merge_layers):
 					self.add_link("{}_{}_{}".format(name, i, l), layer)
+			elif isinstance(link, sequential.Residual):
+				self.add_sequence_with_name(link, name="residual_%d" % i)
 
 	def load(self, filename):
 		if os.path.isfile(filename):
@@ -157,58 +138,58 @@ class Chain(chainer.Chain):
 		serializers.save_hdf5(filename, self)
 
 	def setup_optimizers(self, optimizer_name, lr, momentum=0.9, weight_decay=0, gradient_clipping=0):
-		opt = get_optimizer(optimizer_name, lr, momentum)
-		opt.use_cleargrads()
+		opt = util.get_optimizer(optimizer_name, lr, momentum)
 		opt.setup(self)
 		if weight_decay > 0:
 			opt.add_hook(chainer.optimizer.WeightDecay(weight_decay))
 		if gradient_clipping > 0:
-			opt.add_hook(GradientClipping(gradient_clipping))
-		self.optimizer = opt
+			opt.add_hook(hooks.GradientClipping(gradient_clipping))
+		self._optimizer = opt
 
 	def update_learning_rate(self, lr):
-		if isinstance(self.optimizer, optimizers.Adam):
-			self.optimizer.alpha = lr
+		if isinstance(self._optimizer, optimizers.Adam):
+			self._optimizer.alpha = lr
 			return
-		if isinstance(self.optimizer, Eve):
-			self.optimizer.alpha = lr
+		if isinstance(self._optimizer, Eve):
+			self._optimizer.alpha = lr
 			return
-		if isinstance(self.optimizer, optimizers.AdaDelta):
+		if isinstance(self._optimizer, optimizers.AdaDelta):
 			# AdaDelta has no learning rate
 			return
-		self.optimizer.lr = lr
+		self._optimizer.lr = lr
 
 	def update_momentum(self, momentum):
-		if isinstance(self.optimizer, optimizers.Adam):
-			self.optimizer.beta1 = momentum
+		if isinstance(self._optimizer, optimizers.Adam):
+			self._optimizer.beta1 = momentum
 			return
-		if isinstance(self.optimizer, Eve):
-			self.optimizer.beta1 = momentum
+		if isinstance(self._optimizer, Eve):
+			self._optimizer.beta1 = momentum
 			return
-		if isinstance(self.optimizer, optimizers.AdaDelta):
-			self.optimizer.rho = momentum
+		if isinstance(self._optimizer, optimizers.AdaDelta):
+			self._optimizer.rho = momentum
 			return
-		if isinstance(self.optimizer, optimizers.NesterovAG):
-			self.optimizer.momentum = momentum
+		if isinstance(self._optimizer, optimizers.NesterovAG):
+			self._optimizer.momentum = momentum
 			return
-		if isinstance(self.optimizer, optimizers.RMSprop):
-			self.optimizer.alpha = momentum
+		if isinstance(self._optimizer, optimizers.RMSprop):
+			self._optimizer.alpha = momentum
 			return
-		if isinstance(self.optimizer, optimizers.MomentumSGD):
-			self.optimizer.mommentum = momentum
+		if isinstance(self._optimizer, optimizers.MomentumSGD):
+			self._optimizer.mommentum = momentum
 			return
 
 	def backprop(self, loss):
-		# self.optimizer.zero_grads()
+		# self._optimizer.zero_grads()
 		# loss.backward()
-		# if isinstance(self.optimizer, Eve):
-		# 	self.optimizer.update(loss)
+		# if isinstance(self._optimizer, Eve):
+		# 	self._optimizer.update(loss)
 		# else:
-		# 	self.optimizer.update()
+		# 	self._optimizer.update()
 		if isinstance(loss, Variable):
-			self.optimizer.update(lossfun=lambda: loss)
+			self._optimizer.update(lossfun=lambda: loss)
 		else:
-			self.optimizer.update(lossfun=loss)
+			self._optimizer.update(lossfun=loss)
 
 	def __call__(self, *args, **kwargs):
+		assert self.sequence is not None
 		return self.sequence(*args, **kwargs)

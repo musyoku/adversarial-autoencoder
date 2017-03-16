@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import math, operator
-import params
 import sequential
 from chainer import functions as F
+from aae import Params
 import aae_semi_supervised as aae
 
-class Config(params.Params):
+class Config(Params):
 	def __init__(self):
 		self.ndim_x = 28 * 28
 		self.ndim_y = 10
@@ -14,7 +14,7 @@ class Config(params.Params):
 		self.ndim_z = self.ndim_reduction
 		self.cluster_head_distance_threshold = 2
 		self.distribution_z = "deterministic"	# deterministic or gaussian
-		self.weight_init_std = 0.01
+		self.weight_std = 0.01
 		self.weight_initializer = "Normal"	# Normal, GlorotNormal or HeNormal
 		self.nonlinearity = "relu"
 		self.optimizer = "Adam"

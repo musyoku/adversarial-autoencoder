@@ -109,6 +109,31 @@ class DilatedConvolution2D(Layer):
 			args["initialW"] = self._initialW
 		return chainer.links.DilatedConvolution2D(**args)
 
+class PixelShuffler2D(Layer):
+	def __init__(self, in_channels, out_channels, ksize=3, r=2, pad=1, bias=0, nobias=False, use_cudnn=True):
+		assert in_channels % (r ** 2) == 0
+		self._layer = "PixelShuffler2D"
+		self.in_channels = in_channels
+		self.out_channels = out_channels
+		self.ksize = ksize
+		self.r = r
+		self.pad = pad
+		self.bias = bias
+		self.nobias = nobias
+		self.use_cudnn = use_cudnn
+
+	def to_link(self):
+		link = links.PixelShuffler2D()
+		args = self.to_chainer_args()
+		del args["r"]
+		if hasattr(self, "_initialW"):
+			args["initialW"] = self._initialW
+		args["out_channels"] = self.out_channels * self.r ** 2
+		args["stride"] = 1
+		link.conv =  chainer.links.Convolution2D(**args)
+		link.r = self.r
+		return link
+
 class EmbedID(Layer):
 	def __init__(self, in_size, out_size, ignore_label=None):
 		self._layer = "EmbedID"

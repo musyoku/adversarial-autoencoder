@@ -14,8 +14,8 @@ n_test = 10000
 dim = 28 * 28
 
 def load_mnist(data_filename, label_filename, num):
-	images = np.zeros(num * dim, dtype=np.uint8).reshape((num, dim))
-	label = np.zeros(num, dtype=np.uint8).reshape((num, ))
+	images = np.zeros((num, dim), dtype=np.float32)
+	label = np.zeros((num,), dtype=np.int32)
 	with gzip.open(data_filename, "rb") as f_images, gzip.open(label_filename, "rb") as f_labels:
 		f_images.read(16)
 		f_labels.read(8)
@@ -27,7 +27,9 @@ def load_mnist(data_filename, label_filename, num):
 			if i % 100 == 99 or i == num - 1:
 				sys.stdout.write("\rloading images ... ({} / {})".format(i + 1, num))
 				sys.stdout.flush()
+
 	sys.stdout.write("\n")
+	images = (images / 255.0 * 2.0) - 1.0
 	return images, label
 
 def load_train_images():
