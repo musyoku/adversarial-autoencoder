@@ -35,7 +35,7 @@ else:
 	config.weight_initializer = "Normal"
 	config.nonlinearity = "relu"
 	config.optimizer = "Adam"
-	config.learning_rate = 0.0001
+	config.learning_rate = 0.001
 	config.momentum = 0.1
 	config.gradient_clipping = 5
 	config.weight_decay = 0
@@ -43,8 +43,10 @@ else:
 	decoder = Sequential()
 	decoder.add(Linear(None, 1000))
 	decoder.add(Activation(config.nonlinearity))
+	decoder.add(BatchNormalization(1000))
 	decoder.add(Linear(None, 1000))
 	decoder.add(Activation(config.nonlinearity))
+	decoder.add(BatchNormalization(1000))
 	decoder.add(Linear(None, config.ndim_x))
 	decoder.add(tanh())
 
@@ -52,23 +54,29 @@ else:
 	discriminator_z.add(gaussian_noise(std=0.3))
 	discriminator_z.add(Linear(config.ndim_z, 1000))
 	discriminator_z.add(Activation(config.nonlinearity))
+	discriminator_z.add(BatchNormalization(1000))
 	discriminator_z.add(Linear(None, 1000))
 	discriminator_z.add(Activation(config.nonlinearity))
+	discriminator_z.add(BatchNormalization(1000))
 	discriminator_z.add(Linear(None, 2))
 
 	discriminator_y = Sequential()
 	discriminator_y.add(gaussian_noise(std=0.3))
 	discriminator_y.add(Linear(config.ndim_y, 1000))
 	discriminator_y.add(Activation(config.nonlinearity))
+	discriminator_y.add(BatchNormalization(1000))
 	discriminator_y.add(Linear(None, 1000))
 	discriminator_y.add(Activation(config.nonlinearity))
+	discriminator_y.add(BatchNormalization(1000))
 	discriminator_y.add(Linear(None, 2))
 
 	generator_shared = Sequential()
 	generator_shared.add(Linear(config.ndim_x, 1000))
 	generator_shared.add(Activation(config.nonlinearity))
+	generator_shared.add(BatchNormalization(1000))
 	generator_shared.add(Linear(None, 1000))
 	generator_shared.add(Activation(config.nonlinearity))
+	generator_shared.add(BatchNormalization(1000))
 
 	generator_z = Sequential()
 	if config.distribution_z == "deterministic":
