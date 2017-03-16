@@ -37,7 +37,7 @@ def main():
 	num_validation_data = 10000
 	num_labeled_data = 100
 	num_types_of_label = 10
-	training_images_l, training_labels_l, training_images_u, validation_images, validation_labels = dataset.create_semisupervised(images, labels, num_validation_data, num_labeled_data, num_types_of_label, seed=args.seed)
+	training_images_l, training_labels_l, training_images_u, validation_images, validation_labels = dataset.create_semisupervised(images, labels, num_validation_data, num_labeled_data, num_types_of_label)
 
 	# classification
 	# 0 -> true sample
@@ -57,8 +57,8 @@ def main():
 
 		for t in xrange(num_trains_per_epoch):
 			# sample from data distribution
-			images_l, label_onehot_l, label_ids_l = dataset.sample_labeled_data(training_images_l, training_labels_l, batchsize_l, config.ndim_x, config.ndim_y)
-			images_u = dataset.sample_unlabeled_data(training_images_u, batchsize_u, config.ndim_x)
+			images_l, label_onehot_l, label_ids_l = dataset.sample_labeled_data(training_images_l, training_labels_l, batchsize_l)
+			images_u = dataset.sample_unlabeled_data(training_images_u, batchsize_u)
 
 			# reconstruction phase
 			q_y_x_u, z_u = aae.encode_x_yz(images_u, apply_softmax=True)

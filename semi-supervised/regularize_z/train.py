@@ -32,7 +32,7 @@ def main():
 	# create semi-supervised split
 	num_labeled_data = 10000
 	num_types_of_label = 11		# additional label corresponds to unlabeled data
-	training_images_l, training_labels_l, training_images_u, _, _ = dataset.create_semisupervised(images, labels, 0, num_labeled_data, num_types_of_label, seed=args.seed)
+	training_images_l, training_labels_l, training_images_u, _, _ = dataset.create_semisupervised(images, labels, 0, num_labeled_data, num_types_of_label)
 
 	# classification
 	# 0 -> true sample
@@ -51,8 +51,8 @@ def main():
 
 		for t in xrange(num_trains_per_epoch):
 			# sample from data distribution
-			images_l, label_onehot_l, label_ids_l = dataset.sample_labeled_data(training_images_l, training_labels_l, batchsize_l, config.ndim_x, num_types_of_label)
-			images_u = dataset.sample_unlabeled_data(training_images_u, batchsize_u, config.ndim_x)
+			images_l, label_onehot_l, label_ids_l = dataset.sample_labeled_data(training_images_l, training_labels_l, batchsize_l, ndim_y=num_types_of_label)
+			images_u = dataset.sample_unlabeled_data(training_images_u, batchsize_u)
 
 			# reconstruction phase
 			z_u = aae.encode_x_z(images_u)

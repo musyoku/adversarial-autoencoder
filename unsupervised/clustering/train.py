@@ -47,8 +47,8 @@ def main():
 			images_u = dataset.sample_unlabeled_data(images, batchsize)
 
 			# reconstruction phase
-			q_y_x_u, z_u = aae.encode_x_yz(images_u, apply_softmax=True)
-			reconstruction_u = aae.decode_yz_x(q_y_x_u, z_u)
+			qy_x_u, z_u = aae.encode_x_yz(images_u, apply_softmax=True)
+			reconstruction_u = aae.decode_yz_x(qy_x_u, z_u)
 			loss_reconstruction = F.mean_squared_error(aae.to_variable(images_u), reconstruction_u)
 			aae.backprop_generator(loss_reconstruction)
 			aae.backprop_decoder(loss_reconstruction)

@@ -18,6 +18,7 @@ num_clusters = config.ndim_y
 num_plots_per_cluster = 11
 image_width = 28
 image_height = 28
+ndim_x = image_width * image_height
 pylab.gray()
 
 # plot cluster head
@@ -36,17 +37,17 @@ np.random.shuffle(indices)
 batchsize = 500
 
 i = 0
-x_batch = np.zeros((batchsize, config.ndim_x), dtype=np.float32)
+x_batch = np.zeros((batchsize, ndim_x), dtype=np.float32)
 for n in xrange(len(images) / batchsize):
 	for b in xrange(batchsize):
-		x_batch[b] = images[indices[i]].reshape((config.ndim_x,))
+		x_batch[b] = images[indices[i]]
 		i += 1
 	labels = aae.argmax_x_label(x_batch, test=True)
 	for m in xrange(labels.size):
 		cluster = int(labels[m])
 		counts[cluster] += 1
 		if counts[cluster] <= num_plots_per_cluster:
-			x = x_batch[m]
+			x = (x_batch[m] + 1.0) / 2.0
 			pylab.subplot(num_clusters, num_plots_per_cluster + 2, cluster * (num_plots_per_cluster + 2) + 2 + counts[cluster])
 			pylab.imshow(x.reshape((image_width, image_height)), interpolation="none")
 			pylab.axis("off")

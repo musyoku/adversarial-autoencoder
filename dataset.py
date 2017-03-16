@@ -50,9 +50,8 @@ def create_semisupervised(images, labels, num_validation_data=10000, num_labeled
 
 	return training_labeled_x, training_labels, training_unlabeled_x, validation_x, validation_labels
 	
-def sample_labeled_data(images, labels, batchsize):
+def sample_labeled_data(images, labels, batchsize, ndim_y=10):
 	ndim_x = 28 ** 2
-	ndim_y = 10
 	image_batch = np.zeros((batchsize, ndim_x), dtype=np.float32)
 	label_onehot_batch = np.zeros((batchsize, ndim_y), dtype=np.float32)
 	label_id_batch = np.zeros((batchsize,), dtype=np.int32)
