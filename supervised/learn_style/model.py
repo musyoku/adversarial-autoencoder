@@ -43,6 +43,8 @@ else:
 	decoder.add(Activation(config.nonlinearity))
 	decoder.add(Linear(None, 1000))
 	decoder.add(Activation(config.nonlinearity))
+	decoder.add(Linear(None, 1000))
+	decoder.add(Activation(config.nonlinearity))
 	decoder.add(Linear(None, config.ndim_x))
 	decoder.add(tanh())
 

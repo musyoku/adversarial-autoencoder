@@ -22,7 +22,7 @@ def main():
 
 	# generate style vector z
 	x = dataset.sample_unlabeled_data(images, num_analogies, config.ndim_x, binarize=False)
-	_, z = aae.encode_x_yz(x, apply_softmax=True)
+	_, z = aae.encode_x_yz(x, apply_softmax=True, test=True)
 	z = aae.to_numpy(z)
 
 	# plot original image on the left
@@ -36,7 +36,7 @@ def main():
 	for m in xrange(num_analogies):
 		# copy z as many as the number of classes
 		fixed_z = np.repeat(z[m].reshape(1, -1), config.ndim_y, axis=0)
-		gen_x = aae.to_numpy(aae.decode_yz_x(all_y, fixed_z))
+		gen_x = aae.to_numpy(aae.decode_yz_x(all_y, fixed_z, test=True))
 		gen_x = (gen_x + 1.0) / 2.0
 		# plot images generated from each label
 		for n in xrange(config.ndim_y):
