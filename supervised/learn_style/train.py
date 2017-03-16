@@ -10,7 +10,7 @@ import sampler
 
 def main():
 	# load MNIST images
-	images, labels = dataset.load_train_images()
+	train_images, train_labels = dataset.load_train_images()
 
 	# config
 	config = aae.config
@@ -44,7 +44,7 @@ def main():
 
 		for t in xrange(num_trains_per_epoch):
 			# sample from data distribution
-			images_l, label_onehot_l, label_ids_l = dataset.sample_labeled_data(images, labels, batchsize)
+			images_l, label_onehot_l, label_ids_l = dataset.sample_labeled_data(train_images, train_labels, batchsize)
 
 			# reconstruction phase
 			z_l = aae.encode_x_z(images_l)
@@ -54,17 +54,19 @@ def main():
 			aae.backprop_decoder(loss_reconstruction)
 
 			# adversarial phase
+			images_l = dataset.sample_labeled_data(train_images, train_labels, batchsize)[0]
 			z_fake_l = aae.encode_x_z(images_l)
 			z_true_l = sampler.gaussian(batchsize, config.ndim_z, mean=0, var=1)
-			discrimination_z_true = aae.discriminate_z(z_true_l, apply_softmax=False)
-			discrimination_z_fake = aae.discriminate_z(z_fake_l, apply_softmax=False)
-			loss_discriminator = F.softmax_cross_entropy(discrimination_z_true, class_true) + F.softmax_cross_entropy(discrimination_z_fake, class_fake)
+			dz_true = aae.discriminate_z(z_true_l, apply_softmax=False)
+			dz_fake = aae.discriminate_z(z_fake_l, apply_softmax=False)
+			loss_discriminator = F.softmax_cross_entropy(dz_true, class_true) + F.softmax_cross_entropy(dz_fake, class_fake)
 			aae.backprop_discriminator(loss_discriminator)
 
 			# adversarial phase
+			images_l = dataset.sample_labeled_data(train_images, train_labels, batchsize)[0]
 			z_fake_l = aae.encode_x_z(images_l)
-			discrimination_z_fake = aae.discriminate_z(z_fake_l, apply_softmax=False)
-			loss_generator = F.softmax_cross_entropy(discrimination_z_fake, class_true)
+			dz_fake = aae.discriminate_z(z_fake_l, apply_softmax=False)
+			loss_generator = F.softmax_cross_entropy(dz_fake, class_true)
 			aae.backprop_generator(loss_generator)
 
 			sum_loss_reconstruction += float(loss_reconstruction.data)

@@ -22,10 +22,10 @@ def main():
 
 	# generate style vector z
 	x = dataset.sample_unlabeled_data(images, num_analogies)
-	x = (x + 1.0) / 2.0
-	z = aae.to_numpy(aae.encode_x_z(x))
+	z = aae.to_numpy(aae.encode_x_z(x, test=True))
 
 	# plot original image on the left
+	x = (x + 1.0) / 2.0
 	for m in xrange(num_analogies):
 		pylab.subplot(num_analogies, config.ndim_y + 2, m * 12 + 1)
 		pylab.imshow(x[m].reshape((28, 28)), interpolation="none")
@@ -35,7 +35,7 @@ def main():
 	for m in xrange(num_analogies):
 		# copy z as many as the number of classes
 		fixed_z = np.repeat(z[m].reshape(1, -1), config.ndim_y, axis=0)
-		gen_x = aae.to_numpy(aae.decode_yz_x(all_y, fixed_z))
+		gen_x = aae.to_numpy(aae.decode_yz_x(all_y, fixed_z, test=True))
 		gen_x = (gen_x + 1.0) / 2.0
 		# plot images generated from each label
 		for n in xrange(config.ndim_y):

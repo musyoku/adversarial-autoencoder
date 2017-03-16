@@ -58,7 +58,7 @@ def sample_labeled_data(images, labels, batchsize, ndim_y=10):
 	indices = np.random.choice(np.arange(len(images), dtype=np.int32), size=batchsize, replace=False)
 	for j in range(batchsize):
 		data_index = indices[j]
-		image_batch[j] = images[data_index].astype(np.float32)
+		image_batch[j] = images[data_index]
 		label_onehot_batch[j, labels[data_index]] = 1
 		label_id_batch[j] = labels[data_index]
 	return image_batch, label_onehot_batch, label_id_batch
@@ -69,5 +69,5 @@ def sample_unlabeled_data(images, batchsize):
 	indices = np.random.choice(np.arange(len(images), dtype=np.int32), size=batchsize, replace=False)
 	for j in range(batchsize):
 		data_index = indices[j]
-		image_batch[j] = images[data_index].astype(np.float32)
+		image_batch[j] = images[data_index]
 	return image_batch

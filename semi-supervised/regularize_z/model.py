@@ -41,8 +41,10 @@ else:
 	decoder = Sequential()
 	decoder.add(Linear(None, 1000))
 	decoder.add(Activation(config.nonlinearity))
+	decoder.add(BatchNormalization(1000))
 	decoder.add(Linear(None, 1000))
 	decoder.add(Activation(config.nonlinearity))
+	decoder.add(BatchNormalization(1000))
 	decoder.add(Linear(None, config.ndim_x))
 	decoder.add(tanh())
 
@@ -50,17 +52,22 @@ else:
 	discriminator.add(Merge(num_inputs=2, out_size=1000, nobias=True))
 	discriminator.add(gaussian_noise(std=0.3))
 	discriminator.add(Activation(config.nonlinearity))
+	discriminator.add(BatchNormalization(1000))
 	discriminator.add(Linear(None, 1000))
 	discriminator.add(Activation(config.nonlinearity))
+	discriminator.add(BatchNormalization(1000))
 	discriminator.add(Linear(None, 1000))
 	discriminator.add(Activation(config.nonlinearity))
+	discriminator.add(BatchNormalization(1000))
 	discriminator.add(Linear(None, 2))
 
 	generator = Sequential()
 	generator.add(Linear(config.ndim_x, 1000))
 	generator.add(Activation(config.nonlinearity))
+	generator.add(BatchNormalization(1000))
 	generator.add(Linear(None, 1000))
 	generator.add(Activation(config.nonlinearity))
+	generator.add(BatchNormalization(1000))
 	if config.distribution_z == "deterministic":
 		generator.add(Linear(None, config.ndim_z))
 	elif config.distribution_z == "gaussian":
