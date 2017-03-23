@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "../../")))
 from aae_semi_supervised import AAE, Config
 from sequential import Sequential
 from sequential.layers import Linear, Merge, BatchNormalization, Gaussian
-from sequential.functions import Activation, dropout, gaussian_noise, tanh
+from sequential.functions import Activation, dropout, gaussian_noise, tanh, sigmoid
 
 try:
 	os.mkdir(args.model_dir)
@@ -29,12 +29,12 @@ else:
 	config.ndim_y = 10
 	config.ndim_z = 10
 	config.distribution_z = "deterministic"	# deterministic or gaussian
-	config.weight_std = 0.001
+	config.weight_std = 0.01
 	config.weight_initializer = "Normal"
 	config.nonlinearity = "relu"
 	config.optimizer = "Adam"
-	config.learning_rate = 0.001
-	config.momentum = 0.5
+	config.learning_rate = 0.0001
+	config.momentum = 0.1
 	config.gradient_clipping = 5
 	config.weight_decay = 0
 

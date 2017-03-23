@@ -33,7 +33,7 @@ else:
 	config.weight_initializer = "Normal"
 	config.nonlinearity = "relu"
 	config.optimizer = "Adam"
-	config.learning_rate = 0.001
+	config.learning_rate = 0.0001
 	config.momentum = 0.1
 	config.gradient_clipping = 5
 	config.weight_decay = 0
