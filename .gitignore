@@ -1,0 +1,8 @@
+# ignore all
+*
+
+# allow any
+!*/
+!*.py
+!*.md
+!.gitignore

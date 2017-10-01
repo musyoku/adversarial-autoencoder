@@ -4,11 +4,8 @@
 
 ### Requirements
 
-- Chainer 1.21
-- pylab
-- PIL
-- gzip
-- six
+- Chainer 2+
+- Python 2 or 3
 
 ## Incorporating Label Information in the Adversarial Regularization
 
