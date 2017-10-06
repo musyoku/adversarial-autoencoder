@@ -6,7 +6,7 @@ sys.path.append(os.path.join("..", "..", ".."))
 import aae.nn as nn
 
 class Model(nn.Module):
-	def __init__(self, ndim_x=28*28, ndim_y=10, ndim_z=2, ndim_h=1000, cluster_head_distance_threshold=2):
+	def __init__(self, ndim_x=28*28, ndim_y=10, ndim_z=2, ndim_h=1000, cluster_head_distance_threshold=1):
 		super(Model, self).__init__()
 		self.ndim_x = ndim_x
 		self.ndim_y = ndim_y
@@ -16,6 +16,7 @@ class Model(nn.Module):
 
 		with self.init_scope():
 			self.decoder = nn.Module(
+				nn.GaussianNoise(std=0.3),
 				nn.Linear(ndim_z, ndim_h),
 				nn.ReLU(),
 				# nn.BatchNormalization(ndim_h),
@@ -27,6 +28,7 @@ class Model(nn.Module):
 			)
 
 			encoder = nn.Module(
+				nn.GaussianNoise(std=0.3),
 				nn.Linear(ndim_x, ndim_h),
 				nn.ReLU(),
 				# nn.BatchNormalization(ndim_h),
