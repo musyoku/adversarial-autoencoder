@@ -17,9 +17,6 @@ def main():
 	parser.add_argument("--num-labeled-data", "-nl", type=int, default=100)
 	parser.add_argument("--gpu-device", "-g", type=int, default=0)
 	parser.add_argument("--grad-clip", "-gc", type=float, default=5)
-	parser.add_argument("--learning-rate", "-lr", type=float, default=0.0001)
-	parser.add_argument("--momentum", "-mo", type=float, default=0.1)
-	parser.add_argument("--optimizer", "-opt", type=str, default="adam")
 	parser.add_argument("--seed", type=int, default=0)
 	parser.add_argument("--model", "-m", type=str, default="model.hdf5")
 	args = parser.parse_args()
@@ -49,27 +46,37 @@ def main():
 	total_iterations_train = len(images_train) // args.batchsize
 
 	# optimizers
-	optimizer_encoder = Optimizer(args.optimizer, args.learning_rate, args.momentum)
+	optimizer_encoder = Optimizer("msgd", 0.01, 0.9)
 	optimizer_encoder.setup(model.encoder)
 	if args.grad_clip > 0:
 		optimizer_encoder.add_hook(GradientClipping(args.grad_clip))
 
-	optimizer_decoder = Optimizer(args.optimizer, args.learning_rate, args.momentum)
+	optimizer_semi_supervised = Optimizer("msgd", 0.1, 0.9)
+	optimizer_semi_supervised.setup(model.encoder)
+	if args.grad_clip > 0:
+		optimizer_semi_supervised.add_hook(GradientClipping(args.grad_clip))
+
+	optimizer_generator = Optimizer("msgd", 0.1, 0.1)
+	optimizer_generator.setup(model.encoder)
+	if args.grad_clip > 0:
+		optimizer_generator.add_hook(GradientClipping(args.grad_clip))
+
+	optimizer_decoder = Optimizer("msgd", 0.01, 0.9)
 	optimizer_decoder.setup(model.decoder)
 	if args.grad_clip > 0:
 		optimizer_decoder.add_hook(GradientClipping(args.grad_clip))
 
-	optimizer_discriminator_z = Optimizer(args.optimizer, args.learning_rate, args.momentum)
+	optimizer_discriminator_z = Optimizer("msgd", 0.1, 0.1)
 	optimizer_discriminator_z.setup(model.discriminator_z)
 	if args.grad_clip > 0:
 		optimizer_discriminator_z.add_hook(GradientClipping(args.grad_clip))
 
-	optimizer_discriminator_y = Optimizer(args.optimizer, args.learning_rate, args.momentum)
+	optimizer_discriminator_y = Optimizer("msgd", 0.1, 0.1)
 	optimizer_discriminator_y.setup(model.discriminator_y)
 	if args.grad_clip > 0:
 		optimizer_discriminator_y.add_hook(GradientClipping(args.grad_clip))
 
-	optimizer_cluster_head = Optimizer(args.optimizer, args.learning_rate, args.momentum)
+	optimizer_cluster_head = Optimizer("msgd", 0.01, 0.9)
 	optimizer_cluster_head.setup(model.cluster_head)
 	if args.grad_clip > 0:
 		optimizer_cluster_head.add_hook(GradientClipping(args.grad_clip))
@@ -173,7 +180,7 @@ def main():
 
 					model.cleargrads()
 					loss_generator.backward()
-					optimizer_encoder.update()
+					optimizer_generator.update()
 
 				### supervised phase ###
 				if True:
@@ -182,7 +189,7 @@ def main():
 
 					model.cleargrads()
 					loss_supervised.backward()
-					optimizer_encoder.update()
+					optimizer_semi_supervised.update()
 
 				### additional cost ###
 				if True:
@@ -241,6 +248,22 @@ def main():
 			average_accuracy_l * 100,
 			average_accuracy_u * 100,
 			int((time.time() - training_start_time) // 60)))
+
+	if epoch == 50:
+		optimizer_encoder.set_learning_rate(0.001)
+		optimizer_decoder.set_learning_rate(0.001)
+		optimizer_semi_supervised.set_learning_rate(0.01)
+		optimizer_generator.set_learning_rate(0.01)
+		optimizer_discriminator_y.set_learning_rate(0.01)
+		optimizer_discriminator_z.set_learning_rate(0.01)
+
+	if epoch == 1000:
+		optimizer_encoder.set_learning_rate(0.0001)
+		optimizer_decoder.set_learning_rate(0.0001)
+		optimizer_semi_supervised.set_learning_rate(0.001)
+		optimizer_generator.set_learning_rate(0.001)
+		optimizer_discriminator_y.set_learning_rate(0.001)
+		optimizer_discriminator_z.set_learning_rate(0.001)
 
 
 if __name__ == "__main__":

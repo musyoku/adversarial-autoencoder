@@ -9,8 +9,11 @@ class Optimizer():
 	def setup(self, model):
 		self.optimizer.setup(model)
 
-	def get_learning_rate():
+	def get_learning_rate(self):
 		return get_current_learning_rate(self.optimizer)
+
+	def set_learning_rate(self, new_lr):
+		set_learning_rate(self.optimizer, new_lr)
 
 	def decrease_learning_rate(self, factor, final_value):
 		decrease_learning_rate(self.optimizer, factor, final_value)
@@ -57,6 +60,21 @@ def get_current_learning_rate(opt):
 		return opt.lr
 	if isinstance(opt, optimizers.Adam):
 		return opt.alpha
+	raise NotImplementedError()
+
+def set_learning_rate(opt, lr):
+	if isinstance(opt, optimizers.NesterovAG):
+		opt.lr = lr
+		return
+	if isinstance(opt, optimizers.MomentumSGD):
+		opt.lr = lr
+		return
+	if isinstance(opt, optimizers.SGD):
+		opt.lr = lr
+		return
+	if isinstance(opt, optimizers.Adam):
+		opt.alpha = lr
+		return
 	raise NotImplementedError()
 
 def get_optimizer(name, lr, momentum):
