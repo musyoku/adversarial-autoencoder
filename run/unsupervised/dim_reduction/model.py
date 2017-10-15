@@ -14,53 +14,51 @@ class Model(nn.Module):
 		self.ndim_h = ndim_h
 		self.cluster_head_distance_threshold = cluster_head_distance_threshold
 
-		with self.init_scope():
-			self.decoder = nn.Module(
-				nn.Linear(ndim_z, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_x),
-				nn.Tanh(),
-			)
+		self.decoder = nn.Module(
+			nn.Linear(ndim_z, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_x),
+			nn.Tanh(),
+		)
 
-			encoder = nn.Module(
-				nn.Linear(ndim_x, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_h),
-				nn.ReLU(),
-			)
-			encoder.head_y = nn.Linear(ndim_h, ndim_y)
-			encoder.head_z = nn.Linear(ndim_h, ndim_z)
-			self.encoder = encoder
+		self.encoder = nn.Module(
+			nn.Linear(ndim_x, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_h),
+			nn.ReLU(),
+		)
+		self.encoder.head_y = nn.Linear(ndim_h, ndim_y)
+		self.encoder.head_z = nn.Linear(ndim_h, ndim_z)
 
-			self.discriminator_z = nn.Module(
-				nn.GaussianNoise(std=0.3),
-				nn.Linear(ndim_z, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, 2),
-			)
+		self.discriminator_z = nn.Module(
+			nn.GaussianNoise(std=0.3),
+			nn.Linear(ndim_z, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, 2),
+		)
 
-			self.discriminator_y = nn.Module(
-				nn.GaussianNoise(std=0.3),
-				# nn.GaussianNoise(0, 0.3),
-				nn.Linear(ndim_y, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, 2),
-			)
+		self.discriminator_y = nn.Module(
+			nn.GaussianNoise(std=0.3),
+			# nn.GaussianNoise(0, 0.3),
+			nn.Linear(ndim_y, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, 2),
+		)
 
-			self.cluster_head = nn.Linear(ndim_y, ndim_z, nobias=True)
+		self.cluster_head = nn.Linear(ndim_y, ndim_z, nobias=True)
 
 		for param in self.params():
 			if param.name == "W":

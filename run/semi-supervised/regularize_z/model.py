@@ -11,47 +11,46 @@ class Model(nn.Module):
 		self.ndim_y = ndim_y
 		self.ndim_z = ndim_z
 		self.ndim_h = ndim_h
-		with self.init_scope():
-			self.decoder = nn.Module(
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_z, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_x),
-				nn.Tanh(),
-			)
+		
+		self.decoder = nn.Module(
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_z, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_x),
+			nn.Tanh(),
+		)
 
-			self.encoder = nn.Module(
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_x, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_z),
-			)
+		self.encoder = nn.Module(
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_x, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_z),
+		)
 
-			discriminator = nn.Module(
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, 2),
-			)
-			discriminator.merge_y = nn.Linear(ndim_y, ndim_h, nobias=True)
-			discriminator.merge_z = nn.Module(
-				nn.GaussianNoise(std=0.3),
-				nn.Linear(ndim_z, ndim_h, nobias=True),
-			)
-			discriminator.merge_bias = nn.Bias(shape=(ndim_h,))
-			self.discriminator = discriminator
+		self.discriminator = nn.Module(
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, 2),
+		)
+		self.discriminator.merge_y = nn.Linear(ndim_y, ndim_h, nobias=True)
+		self.discriminator.merge_z = nn.Module(
+			nn.GaussianNoise(std=0.3),
+			nn.Linear(ndim_z, ndim_h, nobias=True),
+		)
+		self.discriminator.merge_bias = nn.Bias(shape=(ndim_h,))
 
 		for param in self.params():
 			if param.name == "W":

@@ -11,40 +11,39 @@ class Model(nn.Module):
 		self.ndim_y = ndim_y
 		self.ndim_z = ndim_z
 		self.ndim_h = ndim_h
-		with self.init_scope():
-			decoder = nn.Module(
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_x),
-				nn.Tanh(),
-			)
-			decoder.merge_y = nn.Linear(ndim_y, ndim_h, nobias=True)
-			decoder.merge_z = nn.Linear(ndim_z, ndim_h, nobias=True)
-			decoder.merge_bias = nn.Bias(shape=(ndim_h,))
-			self.decoder = decoder
 
-			self.encoder = nn.Module(
-				nn.Linear(ndim_x, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_z),
-			)
+		self.decoder = nn.Module(
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_x),
+			nn.Tanh(),
+		)
+		self.decoder.merge_y = nn.Linear(ndim_y, ndim_h, nobias=True)
+		self.decoder.merge_z = nn.Linear(ndim_z, ndim_h, nobias=True)
+		self.decoder.merge_bias = nn.Bias(shape=(ndim_h,))
 
-			self.discriminator = nn.Module(
-				nn.GaussianNoise(std=0.3),
-				nn.Linear(ndim_z, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, ndim_h),
-				nn.ReLU(),
-				# nn.BatchNormalization(ndim_h),
-				nn.Linear(ndim_h, 2),
-			)
+		self.encoder = nn.Module(
+			nn.Linear(ndim_x, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_z),
+		)
+
+		self.discriminator = nn.Module(
+			nn.GaussianNoise(std=0.3),
+			nn.Linear(ndim_z, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, ndim_h),
+			nn.ReLU(),
+			# nn.BatchNormalization(ndim_h),
+			nn.Linear(ndim_h, 2),
+		)
 
 		for param in self.params():
 			if param.name == "W":

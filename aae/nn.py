@@ -229,10 +229,10 @@ class GaussianNoise():
 
 class Residual(object):
 	def __init__(self, *layers):
-		self.layers = layers
+		self.__layers__ = layers
 
 	def __call__(self, x):
-		for layer in self.layers:
+		for layer in self.__layers__:
 			x = layer(x)
 		return x
 
@@ -241,60 +241,94 @@ class Residual(object):
 class Module(chainer.Chain):
 	def __init__(self, *layers):
 		super(Module, self).__init__()
-		self.layers = []
-		self.links = []
-		self.modules = []
+		self.__module_name__ = None
+		self.__layers__ = []
+		self.__links__ = []
+		self.__modules__ = []
+		self.__parent_module__ = None
 		if len(layers) > 0:
 			self.add(*layers)
 
 	def add(self, *layers):
 		with self.init_scope():
 			for i, layer in enumerate(layers):
-				index = i + len(self.layers)
+				index = i + len(self.__layers__)
 
 				if isinstance(layer, chainer.Link):
-					setattr(self, "_sequential_%d" % index, layer)
+					setattr(self, "_nn_layer_%d" % index, layer)
 
 				if isinstance(layer, Residual):
-					for _index, _layer in enumerate(layer.layers):
+					for _index, _layer in enumerate(layer.__layers__):
 						if isinstance(_layer, chainer.Link):
-							setattr(self, "_sequential_{}_{}".format(index, _index), _layer)
-		self.layers += layers
+							setattr(self, "_nn_layer_{}_res_{}".format(index, _index), _layer)
+		self.__layers__ += layers
 
 	def __setattr__(self, name, value):
+		assert isinstance(value, Residual) is False
+
 		if isinstance(value, Module):
-			self.modules.append((name, value))
-			self._set_module(name, value)
+			self.__module_name__ = name
+
+			self.__modules__.append((name, value))
+			value.set_parent_module(self)
+
+			self.update_params()
 			return super(chainer.Link, self).__setattr__(name, value)	# prevent module from being added to self._children
 
 		if isinstance(value, chainer.Link):
+			if name.startswith("_nn_layer_"):
+				return self.super__setattr__(name, value)
+
+			self.__links__.append((name, value))
+
+			self.update_params()
+			
 			with self.init_scope():
-				if name.startswith("_sequential_"):
-					return super(Module, self).__setattr__(name, value)
-				self.links.append((name, value))
-				return super(Module, self).__setattr__(name, value)
+				return self.super__setattr__(name, value)
 
 		super(Module, self).__setattr__(name, value)
 
-	def _set_module(self, namespace, module):
+	def update_params(self):
+		for index, (module_name, module) in enumerate(self.__modules__):
+			self.set_submodule(module_name, module)
+
+		if self.__parent_module__ is not None:
+			self.__parent_module__.update_params()
+
+	def set_submodule(self, namespace, module):
 		assert isinstance(module, Module)
 
-		for index, layer in enumerate(module.layers):
-			if isinstance(layer, chainer.Link):
-				super(Module, self).__setattr__("_module_{}_sequential_{}".format(namespace, index), layer)
+		self.set_submodule_layers(namespace, module)
+		self.set_submodule_links(namespace, module)
 
-			if isinstance(layer, Residual):
-				for _index, _layer in enumerate(layer.layers):
-					if isinstance(_layer, chainer.Link):
-						super(Module, self).__setattr__("_module_{}_sequential_{}_{}".format(namespace, index, _index), _layer)
-		
-		for index, (link_name, link) in enumerate(module.links):
-			assert isinstance(link, chainer.Link)
-			super(Module, self).__setattr__("_module_{}_link_{}".format(namespace, link_name), link)
-
-		for index, (module_name, module) in enumerate(module.modules):
+		for index, (module_name, module) in enumerate(module.__modules__):
 			assert isinstance(module, Module)
-			self._set_module("{}_{}".format(namespace, module_name), module)
+			self.set_submodule("{}_{}".format(namespace, module_name), module)
+
+	def set_submodule_layers(self, namespace, module):
+		with self.init_scope():
+			for index, layer in enumerate(module.__layers__):
+				if isinstance(layer, chainer.Link):
+					self.super__setattr__("_nn_{}_layer_{}".format(namespace, index), layer)
+
+				if isinstance(layer, Residual):
+					for resnet_index, _layer in enumerate(layer.__layers__):
+						if isinstance(_layer, chainer.Link):
+							self.super__setattr__("_nn_{}_layer_{}_res_{}".format(namespace, index, resnet_index), _layer)
+
+	def set_submodule_links(self, namespace, module):
+		with self.init_scope():
+			for index, (link_name, link) in enumerate(module.__links__):
+				assert isinstance(link, chainer.Link)
+				self.super__setattr__("_nn_{}_link_{}".format(namespace, link_name), link)
+
+	def super__setattr__(self, name, value):
+		if name in dir(self):
+			return
+		super(Module, self).__setattr__(name, value)
+
+	def set_parent_module(self, module):
+		super(Module, self).__setattr__("__parent_module__", module)
 
 	def save(self, filename):
 		tmp_filename = filename + "." + str(uuid.uuid4())
@@ -311,9 +345,9 @@ class Module(chainer.Chain):
 		return False
 
 	def __call__(self, x):
-		for layer in self.layers:
+		for layer in self.__layers__:
 			y = layer(x)
-			if isinstance(layer, Residual):
+			if isinstance(layer, Residual) and x.shape == y.shape:
 				y += x
 			x = y
 		return x

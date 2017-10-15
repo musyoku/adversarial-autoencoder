@@ -137,7 +137,7 @@ def main():
 					model.cleargrads()
 					loss_reconstruction.backward()
 					optimizer_encoder.update()
-					optimizer_cluster_head.update()
+					# optimizer_cluster_head.update()
 					optimizer_decoder.update()
 
 				### adversarial phase ###
